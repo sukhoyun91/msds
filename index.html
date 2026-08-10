@@ -43,7 +43,7 @@
             }
             /* GHS 그림문자 테두리 프린트용 (빨간색 마름모) */
             .ghs-picto-print {
-                display: inline-flex; justify-content: center; items-center;
+                display: inline-flex; justify-content: center; align-items: center;
                 width: 15mm; height: 15mm; border: 2px solid red; transform: rotate(45deg); margin: 5mm;
             }
             .ghs-picto-print i { transform: rotate(-45deg); font-size: 8mm; color: black; }
@@ -92,7 +92,7 @@
                     <div>
                         <label for="searchType" class="block text-sm font-medium text-gray-700 mb-1">검색 기준</label>
                         <select id="searchType" class="w-full border border-gray-300 rounded-md p-2 text-sm focus:ring-blue-500 focus:border-blue-500">
-                            <!-- Based on common KOSHA API patterns. Indices might need adjustment based on exact API spec -->
+                            <!-- Based on common KOSHA API patterns. -->
                             <option value="chemNameKor">물질명(국문)</option>
                             <option value="chemNameEng">물질명(영문)</option>
                             <option value="casNo">CAS 번호</option>
@@ -106,7 +106,7 @@
                             
                             <!-- Camera Button for Image Input -->
                             <div class="absolute right-[3.5rem] top-0 bottom-0 flex items-center">
-                                <label for="cameraInput" class="cursor-pointer text-gray-400 hover:text-gray-600 px-2 py-2 title="사진으로 텍스트 추출">
+                                <label for="cameraInput" class="cursor-pointer text-gray-400 hover:text-gray-600 px-2 py-2" title="사진으로 텍스트 추출">
                                     <i class="fa-solid fa-camera text-lg"></i>
                                 </label>
                                 <input type="file" id="cameraInput" accept="image/*" capture="environment" class="hidden">
@@ -390,36 +390,6 @@
         </div>
     </div>
 
-    <!-- Print Option Modal -->
-    <div id="printModal" class="fixed inset-0 bg-black/70 hidden items-center justify-center z-50 modal-fade-in">
-        <div class="bg-white p-6 rounded-lg shadow-xl max-w-sm w-full mx-4">
-            <div class="flex justify-between items-center mb-4">
-                <h3 class="text-lg font-bold text-gray-900 flex items-center">
-                    <i class="fa-solid fa-print mr-2 text-gray-800"></i> 현장 라벨 인쇄
-                </h3>
-                <button id="closePrintModalBtn" class="text-gray-400 hover:text-gray-600 p-1"><i class="fa-solid fa-xmark text-xl"></i></button>
-            </div>
-            
-            <div class="space-y-4">
-                <div class="bg-gray-50 border border-gray-200 p-3 rounded text-sm text-gray-700 mb-4">
-                    <strong>SLP-DL410</strong> 등 4인치 라벨 프린터 규격(폭 100mm)에 맞게 출력이 자동 조정됩니다.
-                </div>
-                
-                <button id="systemPrintBtn" class="w-full flex items-center justify-center py-3 bg-gray-800 text-white rounded hover:bg-gray-700 transition font-medium">
-                    <i class="fa-solid fa-mobile-screen-button mr-2"></i> 기기 기본 인쇄 (권장)
-                </button>
-                <p class="text-xs text-gray-500 text-center mb-2">스마트폰 설정에서 블루투스 프린터가 미리 연결(페어링)되어 있어야 합니다.</p>
-                
-                <hr class="border-gray-200">
-                
-                <button id="webBluetoothPrintBtn" class="w-full flex items-center justify-center py-3 bg-blue-600 text-white rounded hover:bg-blue-700 transition font-medium">
-                    <i class="fa-brands fa-bluetooth-b mr-2"></i> Web Bluetooth 직접 연결
-                </button>
-                <p class="text-xs text-gray-500 text-center">Chrome 등 최신 브라우저 전용 (실험적 기능)</p>
-            </div>
-        </div>
-    </div>
-
     <script>
         // API Configurations
         const API_KEY = "k0HoIu%2BClNvs1d%2BPTqR1cUFnISGMOlB7jAQkxxoGBtd2i%2F%2BvUDWPm5HAdhDqABHxEq%2FGFOWxp5Hs%2Fn3jXxE7GA%3D%3D";
@@ -430,7 +400,7 @@
         const numOfRows = 10;
         let currentSearchQuery = "";
         let currentSearchType = "";
-        let currentChemId = ""; // Assuming KOSHA API uses an internal ID or KOSHA NO for detail queries based on general Public Data Portal patterns for MSDS
+        let currentChemId = ""; 
 
         // DOM Elements
         const searchForm = document.getElementById('searchForm');
@@ -475,9 +445,6 @@
         const webBluetoothPrintBtn = document.getElementById('webBluetoothPrintBtn');
         
         const printLabelContainer = document.getElementById('printLabelContainer');
-        const printTitle = document.getElementById('printTitle');
-        const printCas = document.getElementById('printCas');
-        const printHazardInfo = document.getElementById('printHazardInfo');
 
         // Custom Alert Function (Replaces window.alert)
         function showAlert(message, title = "알림") {
@@ -500,7 +467,6 @@
             const el = node.getElementsByTagName(tagName)[0];
             return el ? el.textContent.trim() : '';
         }
-
 
         // 1. Search Chemical List
         async function fetchChemList(pageNo = 1) {
@@ -531,7 +497,6 @@
                 let queryParams = `?serviceKey=${API_KEY}&pageNo=${pageNo}&numOfRows=${numOfRows}`;
                 
                 // Assuming typical KOSHA parameter naming for search conditions (searchCnd)
-                // 0: 국문, 1: 영문, 2: CAS, 3: 제품명(MSDS) 등 (API 스펙에 따라 변경 필요)
                 let searchCnd = '0';
                 if(searchType === 'chemNameKor') searchCnd = '0';
                 else if(searchType === 'chemNameEng') searchCnd = '1';
@@ -584,7 +549,6 @@
             }
 
             Array.from(items).forEach(item => {
-                // Assuming standard KOSHA XML response tag names.
                 const chemId = getXmlValue(item, 'chemId'); // Unique KOSHA ID
                 const chemNameKor = getXmlValue(item, 'chemNameKor'); 
                 const chemNameEng = getXmlValue(item, 'chemNameEng');
@@ -592,7 +556,6 @@
 
                 const li = document.createElement('li');
                 li.className = "p-4 hover:bg-blue-50 cursor-pointer transition border-b border-gray-100 flex flex-col group";
-                // If chemId isn't provided, sometimes API uses CAS No or Name for detailed queries. We default to chemId or casNo.
                 li.onclick = () => loadDetailView(chemId || casNo, chemNameKor, chemNameEng, casNo);
                 
                 li.innerHTML = `
@@ -619,7 +582,6 @@
             prevPageBtn.disabled = currentPage <= 1;
             nextPageBtn.disabled = currentPage >= totalPages;
         }
-
 
         // 2. Load Detail View Shell (Metadata & UI switch)
         function loadDetailView(id, nameKor, nameEng, cas) {
@@ -662,16 +624,13 @@
             detailEmptyState.classList.remove('hidden');
         });
 
-
         // 3. Fetch Specific MSDS Category Details
         async function fetchChemDetail(categoryNumStr) {
             detailLoading.classList.remove('hidden');
             msdsContentArea.innerHTML = ''; // Clear previous content
 
             try {
-                // Construct URL for details (getChemDetail01 ~ getChemDetail16)
                 const endpoint = `/getChemDetail${categoryNumStr}`;
-                // Usually detail APIs require a unique identifier. Assuming 'chemId' or 'casNo' as parameter
                 let queryParams = `?serviceKey=${API_KEY}&chemId=${encodeURIComponent(currentChemId)}`; 
                 
                 const url = BASE_URL + endpoint + queryParams;
@@ -689,8 +648,6 @@
                     throw new Error(resultMsg || "상세 정보 조회 오류");
                 }
 
-                // Since MSDS data structure varies wildly per section (some have tables, some text blocks),
-                // we build a generic XML parser that converts XML nodes into a readable HTML format.
                 const itemNode = xmlDoc.getElementsByTagName('item')[0];
                 
                 if (itemNode) {
@@ -706,30 +663,24 @@
                 detailLoading.classList.add('hidden');
             }
         }
-
         
         // Generic XML Node to HTML Converter for MSDS content
         function parseItemToHTML(itemNode) {
             let html = '';
-            // Process children of <item>
             for (let i = 0; i < itemNode.childNodes.length; i++) {
                 const node = itemNode.childNodes[i];
                 if (node.nodeType === 1) { // Element node
                     const nodeName = node.nodeName;
                     const textContent = node.textContent.trim();
                     
-                    // Simple check if node has child elements (complex structure)
                     let hasChildElements = false;
                     for (let j = 0; j < node.childNodes.length; j++) {
                         if (node.childNodes[j].nodeType === 1) { hasChildElements = true; break; }
                     }
 
-                    // Format based on KOSHA XML common patterns
-                    // Convert camelCase node names to readable titles loosely
                     const titleStr = formatNodeName(nodeName);
 
                     if (!hasChildElements && textContent) {
-                        // Simple key-value pair
                         html += `
                             <div class="mb-4">
                                 <h3 class="text-sm font-bold text-gray-700 bg-gray-100 p-2 rounded-t">${titleStr}</h3>
@@ -737,7 +688,6 @@
                             </div>
                         `;
                     } else if (hasChildElements) {
-                         // Nested structure (likely a table or sub-list)
                          html += `
                             <div class="mb-6">
                                 <h3 class="text-base font-bold text-blue-800 border-b-2 border-blue-200 pb-2 mb-3">${titleStr}</h3>
@@ -752,7 +702,6 @@
             return html || "데이터 없음";
         }
 
-        // Helper for nested elements
         function parseSubNodesToHTML(parentNode) {
             let html = '';
             for (let i = 0; i < parentNode.childNodes.length; i++) {
@@ -782,41 +731,19 @@
             return html;
         }
 
-        // Make XML tags somewhat readable (e.g., 'chemNameKor' -> 'Chem Name Kor')
         function formatNodeName(name) {
-            // Mapping known KOSHA specific tags if necessary can be done here.
-            // Otherwise, split camelCase to Words.
             const formatted = name.replace(/([A-Z])/g, ' $1').replace(/^./, function(str){ return str.toUpperCase(); });
-            
-            // Basic Korean translation dictionary for common tags (optional enhancement)
             const dictionary = {
-                'Chem Name Kor': '화학물질명(국문)',
-                'Chem Name Eng': '화학물질명(영문)',
-                'Cas No': 'CAS 번호',
-                'Ke No': 'KE 번호',
-                'En No': 'EN 번호',
-                'Un No': 'UN 번호',
-                'Hazard Info': '유해성 정보',
-                'Precaution': '예방조치문구',
-                'Storage': '저장방법',
-                'Disposal': '폐기방법',
-                'Toxicity': '독성',
-                'First Aid': '응급조치'
+                'Chem Name Kor': '화학물질명(국문)', 'Chem Name Eng': '화학물질명(영문)', 'Cas No': 'CAS 번호',
+                'Hazard Info': '유해성 정보', 'Precaution': '예방조치문구', 'Storage': '저장방법', 'Disposal': '폐기방법',
+                'Toxicity': '독성', 'First Aid': '응급조치'
             };
-            
             return dictionary[formatted] || formatted;
         }
 
-        // Sanitize HTML to prevent injection
         function escapeHTML(str) {
             return str.replace(/[&<>'"]/g, 
-                tag => ({
-                    '&': '&amp;',
-                    '<': '&lt;',
-                    '>': '&gt;',
-                    "'": '&#39;',
-                    '"': '&quot;'
-                }[tag] || tag)
+                tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)
             );
         }
 
@@ -824,89 +751,54 @@
         cameraInput.addEventListener('change', function(e) {
             const file = e.target.files[0];
             if (!file) return;
-
-            // Reset file input so the same file can trigger 'change' again if needed
-            e.target.value = '';
-
+            e.target.value = ''; // Reset file input
             simulateOCRProcess();
         });
 
         function simulateOCRProcess() {
-            // Show Modal
             ocrModal.style.display = 'flex';
             ocrProgressBar.style.width = '0%';
-            
             let progress = 0;
             const interval = setInterval(() => {
                 progress += Math.floor(Math.random() * 15) + 5;
                 if (progress > 100) progress = 100;
-                
                 ocrProgressBar.style.width = `${progress}%`;
 
                 if (progress === 100) {
                     clearInterval(interval);
-                    setTimeout(() => {
-                        ocrModal.style.display = 'none';
-                        applyMockOCRResult();
-                    }, 500);
+                    setTimeout(() => { ocrModal.style.display = 'none'; applyMockOCRResult(); }, 500);
                 }
             }, 200);
         }
 
         function applyMockOCRResult() {
-            // Mock data representing what an OCR might extract from a chemical label
             const mockResults = [
-                { type: 'casNo', keyword: '7732-18-5' },     // Water
-                { type: 'chemNameKor', keyword: '황산' },     // Sulfuric Acid
-                { type: 'chemNameEng', keyword: 'Methanol' }, // Methanol
-                { type: 'casNo', keyword: '67-64-1' }        // Acetone
+                { type: 'casNo', keyword: '7732-18-5' }, { type: 'chemNameKor', keyword: '황산' },
+                { type: 'chemNameEng', keyword: 'Methanol' }, { type: 'casNo', keyword: '67-64-1' }
             ];
-
-            // Randomly select one result for simulation
             const result = mockResults[Math.floor(Math.random() * mockResults.length)];
             
             searchTypeSelect.value = result.type;
             searchKeywordInput.value = result.keyword;
             
-            // Highlight the input briefly to show it was auto-filled
             searchKeywordInput.classList.add('bg-blue-100', 'transition-colors', 'duration-500');
-            setTimeout(() => {
-                searchKeywordInput.classList.remove('bg-blue-100');
-            }, 1000);
+            setTimeout(() => { searchKeywordInput.classList.remove('bg-blue-100'); }, 1000);
 
             showAlert(`이미지에서 텍스트를 추출했습니다.\n검색기준: ${searchTypeSelect.options[searchTypeSelect.selectedIndex].text}\n추출된 텍스트: ${result.keyword}`, "사진 분석 완료");
         }
 
+        // Form Submit & Pagination Events
+        searchForm.addEventListener('submit', (e) => { e.preventDefault(); fetchChemList(1); });
+        prevPageBtn.addEventListener('click', () => { if (currentPage > 1) fetchChemList(currentPage - 1); });
+        nextPageBtn.addEventListener('click', () => { fetchChemList(currentPage + 1); });
 
-        // Form Submit
-        searchForm.addEventListener('submit', (e) => {
-            e.preventDefault();
-            fetchChemList(1);
-        });
-
-        // Pagination Clicks
-        prevPageBtn.addEventListener('click', () => {
-            if (currentPage > 1) fetchChemList(currentPage - 1);
-        });
-        
-        nextPageBtn.addEventListener('click', () => {
-            fetchChemList(currentPage + 1);
-        });
-
-        // Tab Clicks for 16 Categories
         msdsTabs.forEach(tab => {
             tab.addEventListener('click', (e) => {
-                if(!currentChemId) return; // Do nothing if no chemical selected
-                
-                // UI Update
+                if(!currentChemId) return;
                 msdsTabs.forEach(t => t.classList.remove('active'));
                 e.target.classList.add('active');
-                
-                // Fetch data for target category
                 const targetCat = e.target.getAttribute('data-target');
                 fetchChemDetail(targetCat);
-                
-                // Optional: Scroll to top of content area
                 document.getElementById('msdsContentArea').parentElement.scrollTop = 0;
             });
         });
@@ -915,12 +807,11 @@
         // Print & Bluetooth Logic
         // ==========================================
         
-        // GHS 텍스트를 FontAwesome 아이콘으로 매핑하는 도우미 함수
         function getGhsIconClass(text) {
-            if (!text) return 'fa-triangle-exclamation'; // 기본 경고
+            if (!text) return 'fa-triangle-exclamation'; 
             if (text.includes('해골')) return 'fa-skull-crossbones';
             if (text.includes('불꽃')) return 'fa-fire';
-            if (text.includes('원가닥')) return 'fa-fire-burner'; // 산화성 (대체)
+            if (text.includes('원가닥')) return 'fa-fire-burner'; 
             if (text.includes('가스') || text.includes('가압')) return 'fa-bottle-droplet';
             if (text.includes('부식')) return 'fa-droplet';
             if (text.includes('감탄사')) return 'fa-exclamation';
@@ -932,16 +823,10 @@
 
         async function preparePrintPreview() {
             // 1. 기본 정보 세팅
-            const title = detailChemNameKor.textContent;
-            const cas = detailCasNo.textContent;
-            
-            document.getElementById('previewTitle').textContent = title;
-            document.getElementById('previewCas').textContent = cas;
-            
-            // 입력 폼 정보 동기화
+            document.getElementById('previewTitle').textContent = detailChemNameKor.textContent;
+            document.getElementById('previewCas').textContent = detailCasNo.textContent;
             updatePreviewCompanyInfo();
 
-            // 2. 유해성 데이터(02번) 불러오기 시뮬레이션 및 API 연동
             document.getElementById('previewLoading').classList.remove('hidden');
             document.getElementById('labelPreviewBox').classList.add('hidden');
             
@@ -953,71 +838,49 @@
                 
                 const xmlText = await response.text();
                 const xmlDoc = parseXML(xmlText);
-                
                 const itemNode = xmlDoc.getElementsByTagName('item')[0];
                 
-                // 데이터 추출 (API 스키마에 따라 태그명은 달라질 수 있으며, 여기서는 일반적인 명칭 사용)
-                // 실제 스펙이 다를 경우 이 부분을 콘솔로그 등을 통해 맞게 수정해야 함.
-                let signalText = "경고";
-                let pictoText = "";
-                let hazardText = "자료 없음";
-                let precautionText = "자료 없음";
+                let signalText = "경고", pictoText = "", hazardText = "자료 없음", precautionText = "자료 없음";
 
                 if (itemNode) {
-                    // 예시 태그 탐색 (실제 XML 구조에 따라 getXmlValue 키값 변경 필요)
                     signalText = getXmlValue(itemNode, 'signalWord') || getXmlValue(itemNode, 'signal') || "위험"; 
                     pictoText = getXmlValue(itemNode, 'pictogram') || getXmlValue(itemNode, 'picto') || "해골과 X자뼈, 불꽃";
                     hazardText = getXmlValue(itemNode, 'hazardStatements') || getXmlValue(itemNode, 'hazard') || "집중력이 떨어질 수 있음\n눈에 심한 자극을 일으킴";
                     precautionText = getXmlValue(itemNode, 'precautionaryStatements') || getXmlValue(itemNode, 'prevent') || "취급 후에는 손을 철저히 씻으시오.\n보호장갑·보안경을 착용하시오.";
                 }
 
-                // 3. 미리보기 화면에 데이터 바인딩
                 document.getElementById('previewSignalWord').textContent = signalText;
                 document.getElementById('previewHazardTexts').innerHTML = hazardText.replace(/\n/g, '<br>');
                 document.getElementById('previewPrecautionTexts').innerHTML = precautionText.replace(/\n/g, '<br>');
 
-                // 픽토그램 렌더링 (미리보기)
                 const previewPictoContainer = document.getElementById('previewPictograms');
                 previewPictoContainer.innerHTML = '';
                 
-                // 픽토그램 텍스트를 콤마로 분리하여 여러개 생성
                 const pictoItems = pictoText.split(',').filter(p => p.trim() !== '');
-                if(pictoItems.length === 0) pictoItems.push('기본'); // 하나도 없으면 기본 아이콘 1개
+                if(pictoItems.length === 0) pictoItems.push('기본'); 
 
-                pictoItems.slice(0, 4).forEach(p => { // 공간상 최대 4개로 제한
+                pictoItems.slice(0, 4).forEach(p => { 
                     const iconClass = getGhsIconClass(p);
-                    previewPictoContainer.innerHTML += `
-                        <div class="ghs-picto-preview">
-                            <i class="fa-solid ${iconClass}"></i>
-                        </div>
-                    `;
+                    previewPictoContainer.innerHTML += `<div class="ghs-picto-preview"><i class="fa-solid ${iconClass}"></i></div>`;
                 });
 
             } catch (error) {
                 console.warn("API 02번 호출 에러, 임시 데이터로 폴백:", error);
-                // API 에러 시 임시 데이터 렌더링
                 document.getElementById('previewSignalWord').textContent = "경고";
                 document.getElementById('previewHazardTexts').textContent = "데이터를 불러올 수 없습니다. 실제 환경에서는 API 응답이 표시됩니다.";
                 document.getElementById('previewPrecautionTexts').textContent = "적절한 보호구를 착용하시오.";
-                document.getElementById('previewPictograms').innerHTML = `
-                    <div class="ghs-picto-preview"><i class="fa-solid fa-triangle-exclamation"></i></div>
-                `;
+                document.getElementById('previewPictograms').innerHTML = `<div class="ghs-picto-preview"><i class="fa-solid fa-triangle-exclamation"></i></div>`;
             } finally {
                 document.getElementById('previewLoading').classList.add('hidden');
                 document.getElementById('labelPreviewBox').classList.remove('hidden');
             }
         }
 
-        // 입력 폼 변경 시 실시간으로 미리보기 및 프린트 컨테이너 업데이트
         function updatePreviewCompanyInfo() {
             const comp = document.getElementById('inputCompany').value;
             const cont = document.getElementById('inputContact').value;
-            
-            // 미리보기 업데이트
             document.getElementById('previewCompany').textContent = comp;
             document.getElementById('previewContact').textContent = cont;
-            
-            // 실제 프린트 돔 업데이트
             document.getElementById('printCompany').textContent = comp;
             document.getElementById('printContact').textContent = cont;
         }
@@ -1026,40 +889,26 @@
         document.getElementById('inputContact').addEventListener('input', updatePreviewCompanyInfo);
 
         openPrintModalBtn.addEventListener('click', () => {
-            if (!currentChemId) {
-                showAlert("먼저 화학물질을 검색하고 선택해주세요.");
-                return;
-            }
+            if (!currentChemId) { showAlert("먼저 화학물질을 검색하고 선택해주세요."); return; }
             printModal.style.display = 'flex';
             preparePrintPreview();
         });
-
-        closePrintModalBtn.addEventListener('click', () => {
-            printModal.style.display = 'none';
-        });
+        closePrintModalBtn.addEventListener('click', () => { printModal.style.display = 'none'; });
 
         // 1. System/Mobile Default Print
         systemPrintBtn.addEventListener('click', () => {
-            // 미리보기에 있는 데이터를 실제 인쇄용 컨테이너로 복사
             document.getElementById('printTitle').innerHTML = document.getElementById('previewTitle').innerHTML;
             document.getElementById('printCas').innerHTML = document.getElementById('previewCas').innerHTML;
             document.getElementById('printSignalWord').innerHTML = document.getElementById('previewSignalWord').innerHTML;
             document.getElementById('printHazardTexts').innerHTML = document.getElementById('previewHazardTexts').innerHTML;
             document.getElementById('printPrecautionTexts').innerHTML = document.getElementById('previewPrecautionTexts').innerHTML;
             
-            // 픽토그램 복사 (클래스명만 교체)
             const printPictoContainer = document.getElementById('printPictograms');
             printPictoContainer.innerHTML = document.getElementById('previewPictograms').innerHTML.replace(/ghs-picto-preview/g, 'ghs-picto-print');
             
             printLabelContainer.classList.remove('hidden');
-            
-            // 인쇄 대화상자 호출
             window.print();
-            
-            // 인쇄 종료 후 원상복구
-            setTimeout(() => {
-                printLabelContainer.classList.add('hidden');
-            }, 1000);
+            setTimeout(() => { printLabelContainer.classList.add('hidden'); }, 1000);
         });
 
         // 2. Web Bluetooth Direct Print (Experimental)
@@ -1068,39 +917,19 @@
                 showAlert("현재 사용 중인 브라우저가 Web Bluetooth를 지원하지 않습니다.\n안드로이드 Chrome 브라우저 등을 이용하시거나 '기기 기본 인쇄'를 선택해주세요.");
                 return;
             }
-
             try {
-                // Request Bluetooth Device (Filtering for SLP printers or generic serial)
                 const device = await navigator.bluetooth.requestDevice({
-                    filters: [
-                        { namePrefix: 'SLP' }, // BIXOLON SLP series
-                        { namePrefix: 'SPP' }  // BIXOLON Mobile series
-                    ],
-                    optionalServices: ['000018f0-0000-1000-8000-00805f9b34fb'] // Generic printer service UUID fallback
+                    filters: [{ namePrefix: 'SLP' }, { namePrefix: 'SPP' }],
+                    optionalServices: ['000018f0-0000-1000-8000-00805f9b34fb']
                 });
-
                 showAlert(`${device.name}에 연결을 시도합니다...`, "블루투스 기기 검색");
-                
                 const server = await device.gatt.connect();
-                
-                /* 
-                 * [개발자 노트]
-                 * 실제 BIXOLON SLP-DL410에 인쇄 명령을 내리려면 이 부분에 
-                 * 제조사 고유의 SLCS(프린터 제어 언어) 코드를 바이트 배열(Uint8Array)로 변환하여
-                 * writeValue()로 전송해야 합니다.
-                 */
-
                 showAlert(`기기(${device.name}) 연결 성공!\n\n*실제 출력을 위해서는 서버에 SLCS 또는 ZPL 템플릿 변환 로직이 추가로 구성되어야 합니다. 현재는 데모 연결까지만 수행되었습니다.`, "블루투스 연결 완료");
                 printModal.style.display = 'none';
-
             } catch (error) {
-                console.error(error);
-                if (error.name !== 'NotFoundError') { // User didn't just cancel
-                    showAlert("블루투스 연결 실패: " + error.message);
-                }
+                if (error.name !== 'NotFoundError') showAlert("블루투스 연결 실패: " + error.message);
             }
         });
-
     </script>
 </body>
 </html>
