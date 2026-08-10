@@ -94,7 +94,7 @@
                         <i class="fa-solid fa-magnifying-glass"></i>
                     </button>
                 </div>
-                <p class="text-xs text-gray-500 mt-2"><i class="fa-solid fa-circle-info mr-1"></i>초고속 CDN 프록시를 통해 빠르게 조회됩니다.</p>
+                <p class="text-xs text-gray-500 mt-2"><i class="fa-solid fa-circle-info mr-1"></i>안전하고 빠른 통신망으로 조회합니다.</p>
             </div>
         </div>
 
@@ -107,7 +107,7 @@
         
         <div id="listLoading" class="hidden absolute inset-0 bg-white bg-opacity-80 flex flex-col items-center justify-center z-20">
             <div class="spinner"></div>
-            <p class="mt-3 text-sm font-medium text-blue-600">초고속 CDN으로 조회 중...</p>
+            <p class="mt-3 text-sm font-medium text-blue-600">데이터를 조회 중...</p>
         </div>
     </div>
 
@@ -261,8 +261,8 @@
         const API_KEY = "k0HoIu+ClNvs1d+PTqR1cUFnISGMOlB7jAQkxxoGBtd2i/+vUDWPm5HAdhDqABHxEq/GFOWxp5Hs/n3jXxE7GA==";
         const TARGET_BASE_URL = "https://apis.data.go.kr/B552468/msdschem";
         
-        // 전 세계 초고속 CDN 프록시 서버 라우터 (지연 시간 최소화)
-        const FAST_PROXY = "https://api.allorigins.win/raw?url=";
+        // CORS 우회용 고속 프록시 라우터 적용
+        const FAST_PROXY = "https://corsproxy.io/?";
 
         let currentChemId = null;
         let currentChemName = "";
@@ -307,7 +307,6 @@
             }, 1500);
         }
 
-        // 초고속 CDN을 통한 API 요청 함수
         async function fetchFast(targetUrl) {
             const finalUrl = FAST_PROXY + encodeURIComponent(targetUrl);
             const response = await fetch(finalUrl);
@@ -598,7 +597,6 @@
             }
 
             updateLabelInfo();
-            modal.classList.add('hidden'); // Fix toggle state
             modal.classList.remove('hidden');
         }
 
