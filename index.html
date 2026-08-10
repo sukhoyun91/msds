@@ -106,7 +106,7 @@
         <!-- 로딩 오버레이 (목록 검색용) -->
         <div id="listLoading" class="hidden absolute inset-0 bg-white bg-opacity-80 flex flex-col items-center justify-center z-20">
             <div class="spinner"></div>
-            <p class="mt-3 text-sm font-medium text-blue-600">데이터를 안전하게 조회 중...</p>
+            <p class="mt-3 text-sm font-medium text-blue-600">데이터를 안정적으로 조회 중...</p>
         </div>
     </div>
 
@@ -270,8 +270,12 @@
     <script>
         const API_KEY = "k0HoIu+ClNvs1d+PTqR1cUFnISGMOlB7jAQkxxoGBtd2i/+vUDWPm5HAdhDqABHxEq/GFOWxp5Hs/n3jXxE7GA==";
         const TARGET_BASE_URL = "https://apis.data.go.kr/B552468/msdschem";
-        // 안정성이 강화된 corsproxy.io 퍼블릭 프록시 적용
-        const PROXY_URL = "https://corsproxy.io/?";
+        
+        // 다중 퍼블릭 프록시 서버 목록 (자동 백업 지원)
+        const PROXY_URLS = [
+            "https://corsproxy.io/?",
+            "https://api.allorigins.win/raw?url="
+        ];
 
         let currentChemId = null;
         let currentChemName = "";
@@ -315,14 +319,21 @@
             }, 2000);
         }
 
-        // 안정적인 페치 요청 함수 (프록시 경로 자동 연동)
+        // 다중 프록시 자동 순환 재시도 패치 함수
         async function fetchWithProxy(targetUrl) {
-            const finalUrl = PROXY_URL + encodeURIComponent(targetUrl);
-            const response = await fetch(finalUrl);
-            if (!response.ok) {
-                throw new Error(`HTTP 에러 발생: ${response.status}`);
+            let lastError = null;
+            for (let proxy of PROXY_URLS) {
+                try {
+                    const finalUrl = proxy + encodeURIComponent(targetUrl);
+                    const response = await fetch(finalUrl);
+                    if (response.ok) {
+                        return await response.text();
+                    }
+                } catch (e) {
+                    lastError = e;
+                }
             }
-            return await response.text();
+            throw lastError || new Error("모든 프록시 서버 연결에 실패했습니다.");
         }
 
         // 통합 검색 및 자동 형식 판독 로직
@@ -393,7 +404,7 @@
                 resultList.innerHTML = `
                     <div class="p-4 bg-red-50 text-red-600 rounded-lg m-2 text-sm">
                         <i class="fa-solid fa-triangle-exclamation mr-1"></i> 데이터를 불러오는 중 오류가 발생했습니다.<br>
-                        <span class="text-xs opacity-80">(${error.message})</span>
+                        <span class="text-xs opacity-80">(네트워크 지연 또는 프록시 응답 없음)</span>
                     </div>
                 `;
             } finally {
