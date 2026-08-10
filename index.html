@@ -260,9 +260,15 @@
     <script>
         const API_KEY = "k0HoIu+ClNvs1d+PTqR1cUFnISGMOlB7jAQkxxoGBtd2i/+vUDWPm5HAdhDqABHxEq/GFOWxp5Hs/n3jXxE7GA==";
         const TARGET_BASE_URL = "https://apis.data.go.kr/B552468/msdschem";
-        
-        // CORS 우회용 고속 프록시 라우터 적용
-        const FAST_PROXY = "https://corsproxy.io/?";
+
+        // CORS 우회용 프록시 목록 (앞에서부터 순서대로 시도, 실패 시 다음 프록시로 자동 전환)
+        // encode=true 이면 대상 URL을 encodeURIComponent 로 감싸서 붙임
+        const PROXY_LIST = [
+            { url: "https://api.allorigins.win/raw?url=", encode: true },
+            { url: "https://corsproxy.io/?url=",          encode: true },
+            { url: "https://thingproxy.freeboard.io/fetch/", encode: false },
+            { url: "",                                     encode: false } // 프록시 없이 직접 시도 (최후)
+        ];
 
         let currentChemId = null;
         let currentChemName = "";
@@ -308,12 +314,38 @@
         }
 
         async function fetchFast(targetUrl) {
-            const finalUrl = FAST_PROXY + encodeURIComponent(targetUrl);
-            const response = await fetch(finalUrl);
-            if (!response.ok) {
-                throw new Error(`통신 에러: ${response.status}`);
+            let lastError = null;
+
+            for (const proxy of PROXY_LIST) {
+                const finalUrl = proxy.url + (proxy.encode ? encodeURIComponent(targetUrl) : targetUrl);
+                try {
+                    const controller = new AbortController();
+                    const timer = setTimeout(() => controller.abort(), 12000); // 12초 타임아웃
+
+                    const response = await fetch(finalUrl, { signal: controller.signal });
+                    clearTimeout(timer);
+
+                    if (!response.ok) {
+                        lastError = new Error(`통신 에러: ${response.status}`);
+                        continue; // 다음 프록시 시도
+                    }
+
+                    const text = await response.text();
+
+                    // 프록시가 에러 페이지(HTML)를 돌려주는 경우 XML 아니면 다음으로
+                    if (!text || (!text.includes("<") )) {
+                        lastError = new Error("빈 응답 또는 잘못된 형식");
+                        continue;
+                    }
+                    return text;
+                } catch (e) {
+                    lastError = (e.name === 'AbortError')
+                        ? new Error("응답 시간 초과")
+                        : e;
+                    continue; // 다음 프록시 시도
+                }
             }
-            return await response.text();
+            throw lastError || new Error("모든 통신 경로 실패");
         }
 
         async function searchChem() {
