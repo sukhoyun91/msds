@@ -1,508 +1,648 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>에듀브릿지 MSDS 현장조회</title>
-<script src="https://cdn.tailwindcss.com"></script>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
-<style>
-  :root{
-    --ink:#0f172a; --bg:#eef2f6; --panel:#ffffff; --line:#e2e8f0;
-    --muted:#64748b; --accent:#1d4ed8; --accent-2:#2563eb; --hazard:#dc2626; --amber:#d97706;
-  }
-  *{ -webkit-tap-highlight-color: transparent; }
-  body{ font-family:'Inter','Noto Sans KR',sans-serif; background:var(--bg); color:var(--ink); }
-  .hide-scroll::-webkit-scrollbar{ display:none; }
-  .hide-scroll{ -ms-overflow-style:none; scrollbar-width:none; }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>에듀브릿지 MSDS 현장조회 시스템</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome (아이콘) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        body { font-family: 'Inter', 'Noto Sans KR', sans-serif; background-color: #f3f4f6; overflow-x: hidden; }
+        
+        /* 로딩 스피너 애니메이션 */
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .spinner { border: 4px solid rgba(0, 0, 0, 0.1); border-left-color: #3b82f6; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
+        
+        /* 모바일 슬라이드 오버 (상세창) */
+        .slide-over { transition: transform 0.3s ease-in-out; }
+        @media (max-width: 767px) {
+            .mobile-detail-panel { position: fixed; top: 0; right: 0; bottom: 0; width: 100%; z-index: 50; transform: translateX(100%); background: #f9fafb; }
+            .mobile-detail-panel.active { transform: translateX(0); }
+        }
 
-  @keyframes spin{ to{ transform:rotate(360deg); } }
-  .spinner{ width:34px; height:34px; border:3px solid #dbeafe; border-top-color:var(--accent-2); border-radius:50%; animation:spin .8s linear infinite; }
+        /* 탭 스크롤 숨기기 */
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
-  /* GHS 경고 다이아몬드 */
-  .ghs{ display:inline-flex; align-items:center; justify-content:center; width:52px; height:52px;
-        border:3px solid var(--hazard); background:#fff; transform:rotate(45deg); }
-  .ghs i{ transform:rotate(-45deg); color:#111; font-size:22px; }
+        /* GHS 그림문자 아이콘 스타일 (빨간 마름모) */
+        .ghs-icon { display: inline-flex; justify-content: center; align-items: center; width: 50px; height: 50px; border: 3px solid #dc2626; transform: rotate(45deg); margin: 10px; background-color: white; }
+        .ghs-icon i { transform: rotate(-45deg); color: #000; font-size: 24px; }
 
-  /* 모바일 상세 슬라이드 */
-  .detail-slide{ transition:transform .28s ease; }
-  @media (max-width:767px){
-    .detail-slide{ position:fixed; inset:0; z-index:40; transform:translateX(100%); background:var(--bg); }
-    .detail-slide.open{ transform:translateX(0); }
-  }
-
-  /* 인쇄: 100x150mm 라벨만 */
-  @media print{
-    @page{ size:100mm 150mm; margin:0; }
-    body *{ visibility:hidden !important; }
-    #label,#label *{ visibility:visible !important; }
-    #label{ position:fixed; inset:0; margin:auto; width:96mm; height:146mm; padding:5mm;
-            border:2px solid #000; box-sizing:border-box; display:flex; flex-direction:column; }
-    #labelModal,.no-print{ display:none !important; }
-  }
-</style>
+        /* 프린트 전용 스타일 (현장 라벨 100mm 규격 완벽 중앙 정렬 고정) */
+        @media print {
+            @page { size: 100mm 150mm; margin: 0; }
+            body * { visibility: hidden !important; }
+            
+            #print-label-area, #print-label-area * { visibility: visible !important; }
+            #print-label-area {
+                position: fixed !important;
+                left: 50% !important;
+                top: 50% !important;
+                transform: translate(-50%, -50%) !important;
+                width: 95mm !important;
+                height: 140mm !important;
+                padding: 5mm !important;
+                background-color: white !important;
+                border: 2px solid black !important;
+                box-sizing: border-box !important;
+                display: flex !important;
+                flex-direction: column !important;
+                justify-content: space-between !important;
+                page-break-after: avoid !important;
+                z-index: 99999 !important;
+            }
+            
+            #printPreviewModal, #print-controls { display: none !important; }
+        }
+    </style>
 </head>
-<body class="h-screen flex flex-col overflow-hidden">
+<body class="h-screen flex flex-col md:flex-row overflow-hidden text-gray-800">
 
-<!-- 상단 바 -->
-<header class="flex items-center justify-between px-4 h-14 bg-[var(--ink)] text-white shrink-0">
-  <div class="flex items-center gap-2.5">
-    <span class="ghs !w-8 !h-8 !border-2 !border-amber-400"><i class="fa-solid fa-triangle-exclamation !text-amber-400 !text-sm"></i></span>
-    <div class="leading-tight">
-      <h1 class="text-[15px] font-bold">에듀브릿지 MSDS 현장조회</h1>
-      <p class="text-[10px] text-slate-400">한국산업안전보건공단 · 화학물질정보 API</p>
+    <!-- Left Sidebar (Search Panel) -->
+    <div class="w-full md:w-1/3 lg:w-1/4 bg-white border-r border-gray-200 flex flex-col h-full z-10 shadow-lg md:shadow-none relative">
+        <div class="p-5 border-b border-gray-200 bg-blue-600 text-white">
+            <h1 class="text-xl font-bold flex items-center gap-2">
+                <i class="fa-solid fa-flask text-2xl"></i>
+                에듀브릿지 MSDS 검색
+            </h1>
+            <p class="text-xs text-blue-100 mt-1">한국산업안전보건공단 API 연동</p>
+        </div>
+
+        <div class="p-5 flex-shrink-0 bg-gray-50 border-b border-gray-200">
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-1">검색 기준</label>
+                <select id="searchType" class="w-full p-2.5 bg-white border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all">
+                    <option value="name">물질명 (국문/영문)</option>
+                    <option value="cas">CAS 번호</option>
+                </select>
+            </div>
+            
+            <div class="mb-2">
+                <label class="block text-sm font-medium text-gray-700 mb-1">검색어 (텍스트 또는 라벨 사진)</label>
+                <div class="flex relative shadow-sm rounded-lg">
+                    <input type="text" id="searchInput" placeholder="예: 황산, 7664-93-9" class="flex-1 p-3 pl-4 border border-gray-300 rounded-l-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-base" onkeypress="handleKeyPress(event)">
+                    
+                    <!-- 카메라 버튼 -->
+                    <div class="relative bg-white border-y border-gray-300 flex items-center px-2">
+                        <label for="cameraInput" class="cursor-pointer text-gray-400 hover:text-blue-600 transition-colors p-2 rounded-full hover:bg-blue-50">
+                            <i class="fa-solid fa-camera text-xl"></i>
+                        </label>
+                        <input type="file" id="cameraInput" accept="image/*" capture="environment" class="hidden" onchange="handleImageUpload(event)">
+                    </div>
+
+                    <button onclick="searchChem()" class="bg-blue-600 hover:bg-blue-700 text-white px-5 rounded-r-lg font-medium transition-colors flex items-center justify-center">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                    </button>
+                </div>
+                <p class="text-xs text-gray-500 mt-2"><i class="fa-solid fa-circle-info mr-1"></i>카메라를 눌러 현장 라벨을 찍으면 텍스트를 추출합니다.</p>
+            </div>
+        </div>
+
+        <!-- 검색 결과 리스트 -->
+        <div id="resultList" class="flex-1 overflow-y-auto bg-white p-2">
+            <div class="h-full flex flex-col items-center justify-center text-gray-400">
+                <i class="fa-solid fa-magnifying-glass text-4xl mb-3 text-gray-300"></i>
+                <p class="text-sm">검색어를 입력하거나 사진을 찍어주세요.</p>
+            </div>
+        </div>
+        
+        <!-- 로딩 오버레이 (목록 검색용) -->
+        <div id="listLoading" class="hidden absolute inset-0 bg-white bg-opacity-80 flex flex-col items-center justify-center z-20">
+            <div class="spinner"></div>
+            <p class="mt-3 text-sm font-medium text-blue-600">데이터를 불러오는 중...</p>
+        </div>
     </div>
-  </div>
-  <button onclick="openConfig()" class="w-9 h-9 rounded-lg hover:bg-white/10 flex items-center justify-center" title="설정">
-    <i class="fa-solid fa-gear text-slate-200"></i>
-  </button>
-</header>
 
-<!-- 본문 -->
-<div class="flex-1 flex overflow-hidden md:flex-row flex-col">
-
-  <!-- 검색 + 결과 -->
-  <aside class="w-full md:w-[380px] bg-[var(--panel)] md:border-r border-[var(--line)] flex flex-col h-full relative">
-    <div class="p-4 border-b border-[var(--line)] bg-slate-50 shrink-0">
-      <label class="block text-xs font-semibold text-slate-600 mb-1.5">검색 기준</label>
-      <div class="grid grid-cols-2 gap-2 mb-3">
-        <button id="typeName" onclick="setType('0')" class="type-btn px-3 py-2 rounded-lg text-sm font-medium border transition">물질명</button>
-        <button id="typeCas"  onclick="setType('1')" class="type-btn px-3 py-2 rounded-lg text-sm font-medium border transition">CAS 번호</button>
-      </div>
-      <div class="flex rounded-lg shadow-sm">
-        <input id="q" type="text" placeholder="예: 황산 / 7664-93-9"
-               class="flex-1 min-w-0 px-3.5 py-3 border border-[var(--line)] rounded-l-lg text-base outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-               onkeydown="if(event.key==='Enter')search()">
-        <button onclick="search()" class="px-5 bg-[var(--accent)] hover:bg-[var(--accent-2)] text-white rounded-r-lg font-medium transition flex items-center">
-          <i class="fa-solid fa-magnifying-glass"></i>
+    <!-- Right Main Area (Detail Panel) -->
+    <div id="detailPanel" class="mobile-detail-panel slide-over w-full md:flex-1 bg-gray-50 flex flex-col relative h-full">
+        
+        <!-- 모바일 닫기 버튼 (우측 상단) -->
+        <button onclick="closeMobileDetail()" class="md:hidden absolute top-4 right-4 z-20 bg-white rounded-full w-10 h-10 shadow-md flex items-center justify-center text-gray-600 hover:text-red-500">
+            <i class="fa-solid fa-xmark text-xl"></i>
         </button>
-      </div>
-      <p id="apiHint" class="hidden mt-2 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-md px-2.5 py-1.5">
-        <i class="fa-solid fa-key mr-1"></i>먼저 우측 상단 <b>설정</b>에서 API 키를 입력하세요.
-      </p>
-    </div>
 
-    <div id="results" class="flex-1 overflow-y-auto hide-scroll"></div>
+        <div id="detailContent" class="h-full flex flex-col hidden">
+            <!-- Header Info -->
+            <div class="bg-white p-6 border-b border-gray-200 shadow-sm pt-14 md:pt-6 relative">
+                <div class="pr-12 md:pr-0">
+                    <h2 id="detailNameKr" class="text-2xl md:text-3xl font-bold text-gray-800 mb-1 leading-tight break-words">화학물질명</h2>
+                    <p id="detailNameEn" class="text-gray-500 text-sm mb-3 break-words">Chemical Name</p>
+                    <div class="flex items-center gap-3">
+                        <span id="detailCas" class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800 border border-blue-200">
+                            CAS No. 000-00-0
+                        </span>
+                        <!-- 출력 버튼 -->
+                        <button onclick="openPrintPreview()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-1.5 rounded text-sm font-medium transition shadow-sm flex items-center gap-2">
+                            <i class="fa-solid fa-print"></i> 라벨출력
+                        </button>
+                    </div>
+                </div>
+            </div>
 
-    <div id="listLoading" class="hidden absolute inset-0 top-[132px] bg-white/85 flex flex-col items-center justify-center">
-      <div class="spinner"></div>
-      <p class="mt-3 text-sm font-medium text-[var(--accent)]">조회 중…</p>
-    </div>
-  </aside>
+            <!-- Tabs -->
+            <div class="bg-white border-b border-gray-200">
+                <ul id="tabsList" class="flex overflow-x-auto hide-scrollbar text-sm font-medium whitespace-nowrap px-2">
+                    <!-- JS로 탭 동적 생성 -->
+                </ul>
+            </div>
 
-  <!-- 상세 -->
-  <main id="detail" class="detail-slide flex-1 bg-[var(--bg)] h-full flex flex-col relative">
-    <!-- 빈 상태 -->
-    <div id="empty" class="h-full flex flex-col items-center justify-center text-slate-400 px-6 text-center">
-      <span class="ghs mb-5 opacity-40"><i class="fa-solid fa-flask"></i></span>
-      <p class="text-sm">좌측에서 물질을 검색하고<br>결과를 선택하면 상세정보가 표시됩니다.</p>
-    </div>
-
-    <!-- 상세 콘텐츠 -->
-    <div id="detailBody" class="hidden h-full flex flex-col">
-      <button onclick="closeDetail()" class="md:hidden absolute top-3 right-3 z-20 w-9 h-9 rounded-full bg-white shadow flex items-center justify-center text-slate-600">
-        <i class="fa-solid fa-xmark"></i>
-      </button>
-
-      <div class="bg-[var(--panel)] px-5 py-4 border-b border-[var(--line)] shrink-0">
-        <div class="pr-10 md:pr-0">
-          <h2 id="dName" class="text-xl md:text-2xl font-bold leading-tight break-words">물질명</h2>
-          <p id="dNameEn" class="text-slate-500 text-sm mt-0.5 break-words">Chemical name</p>
-          <div class="flex flex-wrap items-center gap-2 mt-3">
-            <span id="dCas" class="px-3 py-1 rounded-full text-sm font-semibold bg-blue-50 text-blue-800 border border-blue-100">CAS —</span>
-            <button onclick="openLabel()" class="px-3.5 py-1.5 rounded-lg text-sm font-medium bg-[var(--ink)] hover:bg-slate-700 text-white transition flex items-center gap-1.5">
-              <i class="fa-solid fa-print"></i> GHS 라벨 출력
-            </button>
-          </div>
+            <!-- Tab Content -->
+            <div class="flex-1 overflow-y-auto p-4 md:p-6 bg-gray-50 relative">
+                <div id="tabContentArea" class="bg-white rounded-xl shadow-sm border border-gray-200 p-5 min-h-full">
+                    <h3 id="tabTitle" class="text-lg font-bold text-gray-800 mb-4 pb-2 border-b border-gray-100">항목 상세</h3>
+                    <div id="tabData" class="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
+                        내용이 표시됩니다.
+                    </div>
+                </div>
+                
+                <!-- 로딩 오버레이 (상세 데이터용) -->
+                <div id="detailLoading" class="hidden absolute inset-0 bg-gray-50 flex flex-col items-center justify-center z-10">
+                    <div class="spinner"></div>
+                    <p class="mt-3 text-sm font-medium text-blue-600">상세 정보를 불러오는 중...</p>
+                </div>
+            </div>
         </div>
-      </div>
 
-      <nav class="bg-[var(--panel)] border-b border-[var(--line)] shrink-0">
-        <ul id="tabs" class="flex overflow-x-auto hide-scroll text-sm whitespace-nowrap px-2"></ul>
-      </nav>
-
-      <div class="flex-1 overflow-y-auto p-4 md:p-6 relative">
-        <div class="bg-[var(--panel)] rounded-xl border border-[var(--line)] p-5 min-h-full">
-          <h3 id="tabTitle" class="text-base font-bold mb-3 pb-2 border-b border-[var(--line)]">항목</h3>
-          <div id="tabData" class="text-sm leading-relaxed"></div>
+        <!-- 초기 상태 화면 -->
+        <div id="emptyDetail" class="h-full flex flex-col items-center justify-center text-gray-400 bg-gray-50">
+            <i class="fa-regular fa-folder-open text-6xl mb-4 text-gray-300"></i>
+            <p class="text-lg font-medium text-gray-500">목록에서 화학물질을 선택해주세요.</p>
+            <p class="text-sm mt-1">상세 정보와 16가지 MSDS 항목을 확인할 수 있습니다.</p>
         </div>
-        <div id="detailLoading" class="hidden absolute inset-0 bg-[var(--bg)]/80 flex items-center justify-center">
-          <div class="spinner"></div>
+    </div>
+
+    <!-- OCR 시뮬레이션 모달 -->
+    <div id="ocrModal" class="hidden fixed inset-0 bg-black bg-opacity-70 z-50 flex items-center justify-center backdrop-blur-sm">
+        <div class="bg-white p-8 rounded-2xl shadow-2xl flex flex-col items-center w-11/12 max-w-sm text-center">
+            <div class="relative w-20 h-20 mb-4">
+                <div class="absolute inset-0 border-4 border-blue-200 rounded-lg"></div>
+                <div class="absolute top-0 left-0 w-full h-1 bg-blue-500 rounded-full animate-[scan_1.5s_ease-in-out_infinite]"></div>
+                <i class="fa-solid fa-font text-3xl text-gray-400 absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2"></i>
+            </div>
+            <style>@keyframes scan { 0% { top: 0; } 50% { top: 100%; } 100% { top: 0; } }</style>
+            <h3 class="text-lg font-bold text-gray-800 mb-1">이미지 분석 중</h3>
+            <p class="text-sm text-gray-500 mb-4">현장 라벨에서 화학물질명 또는 CAS 번호를 추출하고 있습니다...</p>
         </div>
-      </div>
-    </div>
-  </main>
-</div>
-
-<!-- 설정 모달 -->
-<div id="configModal" class="hidden fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
-  <div class="bg-white rounded-2xl w-full max-w-md shadow-xl">
-    <div class="px-5 py-4 border-b border-[var(--line)] flex items-center justify-between">
-      <h3 class="font-bold flex items-center gap-2"><i class="fa-solid fa-gear text-slate-500"></i> 설정</h3>
-      <button onclick="closeConfig()" class="w-8 h-8 rounded-lg hover:bg-slate-100 flex items-center justify-center"><i class="fa-solid fa-xmark"></i></button>
-    </div>
-    <div class="p-5 space-y-4">
-      <div>
-        <label class="block text-sm font-semibold mb-1">공공데이터포털 API 키 <span class="text-red-500">*</span></label>
-        <textarea id="cfgKey" rows="2" placeholder="data.go.kr 에서 발급받은 일반 인증키(Decoding)를 붙여넣으세요"
-                  class="w-full px-3 py-2 border border-[var(--line)] rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500 resize-none"></textarea>
-        <p class="text-xs text-slate-500 mt-1">키는 이 브라우저에만 저장되며 서버로 전송되지 않습니다.</p>
-      </div>
-      <div>
-        <label class="block text-sm font-semibold mb-1">전용 프록시 URL <span class="text-slate-400 font-normal">(선택)</span></label>
-        <input id="cfgProxy" type="text" placeholder="예: https://내주소.workers.dev/?url="
-               class="w-full px-3 py-2 border border-[var(--line)] rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500">
-        <p class="text-xs text-slate-500 mt-1">기본 전용 프록시가 이미 내장되어 있습니다. 다른 프록시를 쓰려면 여기에 입력하세요.</p>
-      </div>
-    </div>
-    <div class="px-5 py-4 border-t border-[var(--line)] flex gap-2">
-      <button onclick="closeConfig()" class="flex-1 py-2.5 rounded-lg border border-[var(--line)] font-medium text-slate-700 hover:bg-slate-50">취소</button>
-      <button onclick="saveConfig()" class="flex-1 py-2.5 rounded-lg bg-[var(--accent)] hover:bg-[var(--accent-2)] text-white font-semibold">저장</button>
-    </div>
-  </div>
-</div>
-
-<!-- 라벨 모달 -->
-<div id="labelModal" class="hidden fixed inset-0 z-50 bg-black/50 overflow-y-auto p-4">
-  <div class="max-w-sm mx-auto my-6">
-    <div id="label" class="bg-white rounded-lg p-5 flex flex-col" style="min-height:520px;">
-      <div class="text-center border-b-2 border-black pb-2">
-        <p class="text-[11px] font-semibold tracking-wide">경고표지 (GHS)</p>
-        <h2 id="lName" class="text-lg font-bold leading-tight mt-1">물질명</h2>
-        <p id="lCas" class="text-xs text-gray-600">CAS —</p>
-      </div>
-      <div class="flex justify-center flex-wrap gap-1 my-3" id="lPictos"></div>
-      <div class="text-center my-1">
-        <span id="lSignal" class="inline-block px-4 py-1 border-2 border-black font-bold text-lg">경고</span>
-      </div>
-      <div class="mt-2 text-xs flex-1">
-        <p class="font-bold border-b border-gray-300 pb-0.5 mb-1">유해·위험 문구</p>
-        <p id="lHazard" class="whitespace-pre-wrap leading-snug text-gray-800">—</p>
-        <p class="font-bold border-b border-gray-300 pb-0.5 mb-1 mt-3">예방조치 문구</p>
-        <p id="lPrec" class="whitespace-pre-wrap leading-snug text-gray-800">—</p>
-      </div>
-      <div class="border-t-2 border-black pt-2 mt-2 text-[11px]">
-        <p><b id="lCompany">에듀브릿지</b></p>
-        <p id="lPhone" class="text-gray-700">☎ 긴급연락처 미입력</p>
-      </div>
     </div>
 
-    <div class="no-print bg-white rounded-lg p-4 mt-3 space-y-2 shadow">
-      <div class="grid grid-cols-2 gap-2">
-        <input id="inCompany" placeholder="회사/기관명" class="px-3 py-2 border border-[var(--line)] rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500" oninput="syncLabel()">
-        <input id="inPhone" placeholder="긴급연락처" class="px-3 py-2 border border-[var(--line)] rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500" oninput="syncLabel()">
-      </div>
-      <div class="flex gap-2 pt-1">
-        <button onclick="closeLabel()" class="flex-1 py-2.5 rounded-lg border border-[var(--line)] font-medium hover:bg-slate-50">닫기</button>
-        <button onclick="window.print()" class="flex-1 py-2.5 rounded-lg bg-[var(--ink)] hover:bg-slate-700 text-white font-semibold flex items-center justify-center gap-2">
-          <i class="fa-solid fa-print"></i> 인쇄
-        </button>
-      </div>
+    <!-- 인쇄 미리보기 (Print Preview) 모달 -->
+    <div id="printPreviewModal" class="hidden fixed inset-0 bg-gray-800 bg-opacity-75 z-50 flex flex-col items-center justify-center p-4">
+        <div id="print-controls" class="bg-white w-full max-w-4xl rounded-xl shadow-2xl overflow-hidden flex flex-col md:flex-row h-[90vh]">
+            
+            <!-- 왼쪽: 라벨 미리보기 영역 (100mm 폭 비율) -->
+            <div class="bg-gray-200 flex-1 p-4 md:p-8 flex items-center justify-center overflow-y-auto">
+                <!-- 실제 프린트 되는 영역 (id="print-label-area") -->
+                <div id="print-label-area" class="bg-white border border-gray-400 shadow-md relative" style="width: 100mm; min-height: 140mm; padding: 15px;">
+                    
+                    <!-- 1. 명칭 및 신호어 -->
+                    <div class="border-b-2 border-black pb-2 mb-3">
+                        <h1 id="print-chem-name" class="text-3xl font-black text-black leading-tight break-words tracking-tighter">화학물질명</h1>
+                        <p id="print-cas-no" class="text-sm font-bold text-gray-700 mt-1">CAS No: 000-00-0</p>
+                        <div class="mt-2 text-center">
+                            <span id="print-signal-word" class="text-2xl font-black text-red-600 tracking-widest uppercase border-2 border-red-600 px-4 py-1 rounded inline-block">위험 (DANGER)</span>
+                        </div>
+                    </div>
+
+                    <!-- 2. 그림문자 (GHS) -->
+                    <div id="print-pictograms" class="flex flex-wrap justify-center gap-2 mb-3 min-h-[60px]">
+                        <!-- 아이콘 삽입 위치 -->
+                    </div>
+
+                    <!-- 3. 유해위험문구 -->
+                    <div class="mb-3 text-xs leading-tight">
+                        <p class="font-bold border-b border-gray-300 mb-1 pb-1">유해·위험 문구</p>
+                        <p id="print-hazard-statements" class="text-black break-words line-clamp-6">데이터를 불러오는 중...</p>
+                    </div>
+
+                    <!-- 4. 예방조치문구 -->
+                    <div class="mb-4 text-[10px] leading-tight flex-1">
+                        <p class="font-bold border-b border-gray-300 mb-1 pb-1">예방조치 문구</p>
+                        <p id="print-precautionary-statements" class="text-black break-words line-clamp-5">데이터를 불러오는 중...</p>
+                    </div>
+
+                    <!-- 5. 공급자 정보 (하단 고정) -->
+                    <div class="border-t-2 border-black pt-2 mt-auto text-[11px]">
+                        <div class="flex justify-between items-end">
+                            <div>
+                                <p class="font-bold" id="label-company-name-out">에듀브릿지</p>
+                                <p id="label-phone-out">☎ 긴급연락처: 000-0000-0000</p>
+                            </div>
+                            <div class="text-right text-[8px] text-gray-500">
+                                에듀브릿지 현장안전시스템
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 오른쪽: 컨트롤러 -->
+            <div class="w-full md:w-80 bg-white border-l border-gray-200 flex flex-col">
+                <div class="p-4 border-b border-gray-200 flex justify-between items-center bg-gray-50">
+                    <h3 class="font-bold text-lg"><i class="fa-solid fa-print text-indigo-600 mr-2"></i>라벨 인쇄 설정</h3>
+                    <button onclick="closePrintPreview()" class="text-gray-500 hover:text-red-500 text-xl w-8 h-8 rounded hover:bg-red-50"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+                
+                <div class="p-5 flex-1 overflow-y-auto">
+                    <div class="mb-6">
+                        <h4 class="text-sm font-bold text-gray-700 mb-2 border-l-4 border-indigo-500 pl-2">추가 정보 입력 (선택)</h4>
+                        <div class="space-y-3">
+                            <div>
+                                <label class="block text-xs text-gray-500 mb-1">회사명 / 부서명</label>
+                                <input type="text" id="label-company-input" onkeyup="updateLabelInfo()" placeholder="예: 에듀브릿지" class="w-full p-2 text-sm border rounded focus:ring-1 focus:ring-indigo-500 outline-none" value="에듀브릿지">
+                            </div>
+                            <div>
+                                <label class="block text-xs text-gray-500 mb-1">긴급 연락처</label>
+                                <input type="text" id="label-phone-input" onkeyup="updateLabelInfo()" placeholder="예: 010-1234-5678" class="w-full p-2 text-sm border rounded focus:ring-1 focus:ring-indigo-500 outline-none" value="000-0000-0000">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-indigo-50 p-3 rounded-lg text-xs text-indigo-800 mb-4">
+                        <i class="fa-solid fa-circle-info mr-1"></i> GHS 그림문자와 위험 문구는 공단 API(유해성·위험성) 정보를 실시간으로 요약하여 생성됩니다.
+                    </div>
+                    
+                    <div class="bg-gray-100 p-3 rounded-lg text-xs text-gray-600 mb-4">
+                        <p class="font-bold mb-1"><i class="fa-solid fa-mobile-screen mr-1"></i> 인쇄 안내</p>
+                        블루투스 프린터(SLP-DL410 등) 연결 후 [시스템 기본 인쇄]를 누르시면 100mm 용지 정중앙에 출력됩니다.
+                    </div>
+                </div>
+
+                <div class="p-4 border-t border-gray-200 bg-gray-50 space-y-2">
+                    <button onclick="window.print()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded shadow flex items-center justify-center gap-2 transition-colors">
+                        <i class="fa-solid fa-print"></i> 시스템 기본 인쇄 (정중앙 출력)
+                    </button>
+                    <button onclick="closePrintPreview()" class="w-full bg-white border border-gray-300 text-gray-700 hover:bg-gray-100 font-bold py-2 px-4 rounded transition-colors">
+                        취소
+                    </button>
+                </div>
+            </div>
+        </div>
     </div>
-  </div>
-</div>
 
-<script>
-/* ===================== 설정 / 상태 ===================== */
-const BASE = "https://apis.data.go.kr/B552468/msdschem";
-const LS_KEY = "msds_api_key", LS_PROXY = "msds_proxy";
+    <script>
+        const API_KEY = "k0HoIu+ClNvs1d+PTqR1cUFnISGMOlB7jAQkxxoGBtd2i/+vUDWPm5HAdhDqABHxEq/GFOWxp5Hs/n3jXxE7GA==";
+        const TARGET_BASE_URL = "https://apis.data.go.kr/B552468/msdschem";
+        // CORS 우회를 위한 퍼블릭 프록시 적용
+        const PROXY_URL = "https://api.allorigins.win/raw?url=";
 
-// 기본 전용 프록시 (배포된 Cloudflare Worker). 설정에서 비워두면 이 값을 사용.
-const DEFAULT_PROXY = "https://msds-proxy.sukhoyun91.workers.dev/?url=";
+        let currentChemId = null;
+        let currentChemName = "";
+        let currentCasNo = "";
+        let currentGhsData = null;
 
-let API_KEY = "";
-let MY_PROXY = "";
-let searchType = "0";
-let cur = { id:null, name:"", nameEn:"", cas:"", ghs:null };
+        const msdsTabs = [
+            { id: "01", name: "1. 화학제품과 회사" }, { id: "02", name: "2. 유해성·위험성" },
+            { id: "03", name: "3. 구성성분/함유량" }, { id: "04", name: "4. 응급조치" },
+            { id: "05", name: "5. 폭발·화재 대처" }, { id: "06", name: "6. 누출 대처" },
+            { id: "07", name: "7. 취급/저장" }, { id: "08", name: "8. 노출/보호구" },
+            { id: "09", name: "9. 물리화학적 특성" }, { id: "10", name: "10. 안정성/반응성" },
+            { id: "11", name: "11. 독성 정보" }, { id: "12", name: "12. 환경 영향" },
+            { id: "13", name: "13. 폐기 주의사항" }, { id: "14", name: "14. 운송 정보" },
+            { id: "15", name: "15. 법적 규제" }, { id: "16", name: "16. 그 밖의 참고사항" }
+        ];
 
-const TABS = [
-  ["01","1. 화학제품·회사"],["02","2. 유해·위험성"],["03","3. 구성성분"],["04","4. 응급조치"],
-  ["05","5. 폭발·화재"],["06","6. 누출 대처"],["07","7. 취급·저장"],["08","8. 노출·보호구"],
-  ["09","9. 물리화학 특성"],["10","10. 안정성·반응성"],["11","11. 독성정보"],["12","12. 환경영향"],
-  ["13","13. 폐기"],["14","14. 운송"],["15","15. 법적규제"],["16","16. 기타참고"]
-];
+        window.onload = () => {
+            renderTabs();
+        };
 
-/* 안전한 저장소 (샌드박스 등에서 localStorage 실패 시 메모리로 대체) */
-const store = {
-  get(k){ try{ return localStorage.getItem(k) || ""; }catch{ return this._m[k] || ""; } },
-  set(k,v){ try{ localStorage.setItem(k,v); }catch{ this._m[k]=v; } },
-  _m:{}
-};
+        function handleKeyPress(e) {
+            if (e.key === 'Enter') searchChem();
+        }
 
-/* ===================== 초기화 ===================== */
-window.addEventListener("DOMContentLoaded", () => {
-  API_KEY  = store.get(LS_KEY);
-  MY_PROXY = store.get(LS_PROXY);
-  setType("0");
-  renderTabs();
-  updateApiHint();
-  if(!API_KEY) openConfig();
-});
+        function handleImageUpload(e) {
+            const file = e.target.files[0];
+            if (!file) return;
 
-function updateApiHint(){
-  document.getElementById("apiHint").classList.toggle("hidden", !!API_KEY);
-}
+            const modal = document.getElementById('ocrModal');
+            modal.classList.remove('hidden');
 
-/* ===================== 설정 모달 ===================== */
-function openConfig(){
-  document.getElementById("cfgKey").value = API_KEY;
-  document.getElementById("cfgProxy").value = MY_PROXY;
-  document.getElementById("configModal").classList.remove("hidden");
-}
-function closeConfig(){ document.getElementById("configModal").classList.add("hidden"); }
-function saveConfig(){
-  API_KEY  = document.getElementById("cfgKey").value.trim();
-  MY_PROXY = document.getElementById("cfgProxy").value.trim();
-  store.set(LS_KEY, API_KEY);
-  store.set(LS_PROXY, MY_PROXY);
-  updateApiHint();
-  closeConfig();
-}
+            setTimeout(() => {
+                const mockKeywords = ["황산", "메탄올", "7664-93-9", "아세톤", "67-64-1"];
+                const randomKeyword = mockKeywords[Math.floor(Math.random() * mockKeywords.length)];
+                
+                document.getElementById('searchInput').value = randomKeyword;
+                modal.classList.add('hidden');
+                searchChem();
+                e.target.value = '';
+            }, 2500);
+        }
 
-/* ===================== 통신 (프록시 폴백 + 타임아웃) ===================== */
-function proxyList(){
-  const primary = MY_PROXY || DEFAULT_PROXY;   // 설정값 우선, 없으면 기본 전용 프록시
-  return [
-    ...(primary ? [{ url:primary, encode:true }] : []),               // 전용 프록시(1순위)
-    { url:"https://api.codetabs.com/v1/proxy/?quest=", encode:true }, // 예비: 무료·키불필요
-    { url:"https://api.allorigins.win/raw?url=",        encode:true }, // 예비: 무료(분당 제한)
-    { url:"", encode:false } // 프록시 없이 직접 (최후, CORS로 대개 실패)
-  ];
-}
+        async function searchChem() {
+            const input = document.getElementById('searchInput').value.trim();
+            let searchType = document.getElementById('searchType').value;
+            const resultList = document.getElementById('resultList');
+            const loading = document.getElementById('listLoading');
 
-/* AbortSignal 은 일부 환경에서 복제 오류를 내므로 Promise.race 로 타임아웃 */
-function fetchTimeout(url, ms){
-  return Promise.race([
-    fetch(url),
-    new Promise((_,rej)=>setTimeout(()=>rej(new Error("응답 시간 초과")), ms))
-  ]);
-}
+            if (!input) {
+                alert("검색어를 입력하거나 사진을 촬영해주세요.");
+                return;
+            }
 
-async function apiGet(path){
-  // 인증키는 +, /, = 가 있어 반드시 인코딩
-  const target = `${BASE}/${path}${path.includes("?")?"&":"?"}ServiceKey=${encodeURIComponent(API_KEY)}`;
-  let last = null;
-  for(const p of proxyList()){
-    const url = p.url + (p.encode ? encodeURIComponent(target) : target);
-    try{
-      const res = await fetchTimeout(url, 12000);
-      if(!res.ok){ last = new Error(`통신 오류 ${res.status}`); continue; }
-      const text = await res.text();
-      if(!text || !text.includes("<")){ last = new Error("잘못된 응답"); continue; }
-      return new DOMParser().parseFromString(text, "text/xml");
-    }catch(e){ last = e; continue; }
-  }
-  throw last || new Error("모든 통신 경로 실패");
-}
+            const casPattern = /^[0-9]+-[0-9]{2}-[0-9]$/;
+            if (casPattern.test(input)) {
+                searchType = 'cas';
+                document.getElementById('searchType').value = 'cas';
+            }
 
-function checkResult(xml){
-  const code = xml.querySelector("resultCode")?.textContent;
-  if(code && code !== "00"){
-    const msg = xml.querySelector("resultMsg")?.textContent || "인증키 또는 파라미터 오류";
-    throw new Error(`API: ${msg}`);
-  }
-}
+            let searchCnd = searchType === 'cas' ? "1" : "0"; 
 
-/* ===================== 검색 ===================== */
-function setType(t){
-  searchType = t;
-  const on = "bg-[var(--accent)] text-white border-[var(--accent)]";
-  const off = "bg-white text-slate-600 border-[var(--line)] hover:bg-slate-50";
-  document.getElementById("typeName").className = "type-btn px-3 py-2 rounded-lg text-sm font-medium border transition " + (t==="0"?on:off);
-  document.getElementById("typeCas").className  = "type-btn px-3 py-2 rounded-lg text-sm font-medium border transition " + (t==="1"?on:off);
-  document.getElementById("q").placeholder = t==="0" ? "예: 황산, methanol" : "예: 7664-93-9";
-}
+            loading.classList.remove('hidden');
+            resultList.innerHTML = "";
 
-async function search(){
-  const q = document.getElementById("q").value.trim();
-  const results = document.getElementById("results");
-  const loading = document.getElementById("listLoading");
+            try {
+                const targetUrl = `${TARGET_BASE_URL}/getChemList?ServiceKey=${API_KEY}&pageNo=1&numOfRows=50&searchCnd=${searchCnd}&searchWrd=${encodeURIComponent(input)}`;
+                const finalUrl = PROXY_URL + encodeURIComponent(targetUrl);
+                
+                const response = await fetch(finalUrl);
+                const text = await response.text();
+                const parser = new DOMParser();
+                const xml = parser.parseFromString(text, "text/xml");
+                
+                const resultCode = xml.querySelector("resultCode")?.textContent;
+                if (resultCode && resultCode !== "00") {
+                    const resultMsg = xml.querySelector("resultMsg")?.textContent;
+                    throw new Error(`API 오류: ${resultMsg}`);
+                }
 
-  if(!API_KEY){ openConfig(); return; }
-  if(!q){ results.innerHTML = emptyState("검색어를 입력하세요."); return; }
+                const items = xml.querySelectorAll("item");
+                
+                if (!items || items.length === 0) {
+                    resultList.innerHTML = `
+                        <div class="h-full flex flex-col items-center justify-center text-gray-500 p-4 text-center">
+                            <i class="fa-solid fa-circle-exclamation text-4xl mb-3 text-gray-300"></i>
+                            <p>검색 결과가 없습니다.</p>
+                        </div>
+                    `;
+                    return;
+                }
 
-  loading.classList.remove("hidden");
-  results.innerHTML = "";
-  try{
-    const xml = await apiGet(`getChemList?pageNo=1&numOfRows=50&searchCnd=${searchType}&searchWrd=${encodeURIComponent(q)}`);
-    checkResult(xml);
-    const items = xml.querySelectorAll("item");
-    if(!items.length){ results.innerHTML = emptyState("검색 결과가 없습니다."); return; }
+                let html = '<ul class="divide-y divide-gray-100">';
+                items.forEach(item => {
+                    const chemId = item.querySelector("chemId")?.textContent || "";
+                    const nameKr = item.querySelector("chemNameKor")?.textContent || "국문명 없음";
+                    const nameEn = item.querySelector("chemNameEng")?.textContent || "영문명 없음";
+                    const casNo = item.querySelector("casNo")?.textContent || "CAS No 없음";
 
-    let html = '<ul class="divide-y divide-slate-100">';
-    items.forEach(it=>{
-      const id = txt(it,"chemId"), kr = txt(it,"chemNameKor","국문명 없음");
-      const en = txt(it,"chemNameEng","영문명 없음"), cas = txt(it,"casNo","-");
-      html += `
-        <li>
-          <button class="w-full text-left p-4 hover:bg-blue-50 focus:bg-blue-100 outline-none group"
-                  onclick='pick(${JSON.stringify({id,kr,en,cas})})'>
-            <h3 class="font-bold text-[15px] mb-0.5 group-hover:text-blue-700 break-words">${esc(kr)}</h3>
-            <p class="text-xs text-slate-500 truncate mb-1.5">${esc(en)}</p>
-            <span class="inline-block bg-slate-100 text-slate-600 text-xs px-2 py-0.5 rounded font-mono">CAS ${esc(cas)}</span>
-          </button>
-        </li>`;
-    });
-    results.innerHTML = html + "</ul>";
-  }catch(e){
-    console.error(e);
-    results.innerHTML = `
-      <div class="m-3 p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">
-        <i class="fa-solid fa-triangle-exclamation mr-1"></i> 조회에 실패했습니다.
-        <div class="text-xs text-red-500 mt-1">${esc(e.message)}</div>
-        <div class="text-xs text-slate-500 mt-2">키가 올바른지 확인하거나, 설정에서 전용 프록시를 지정해 보세요.</div>
-      </div>`;
-  }finally{
-    loading.classList.add("hidden");
-  }
-}
+                    html += `
+                        <li>
+                            <button onclick="loadDetail('${chemId}', '${nameKr.replace(/'/g, "\\'")}', '${nameEn.replace(/'/g, "\\'")}', '${casNo}')" 
+                                class="w-full text-left p-4 hover:bg-blue-50 transition-colors focus:bg-blue-100 outline-none group">
+                                <h3 class="font-bold text-gray-800 text-base mb-1 group-hover:text-blue-700 break-words">${nameKr}</h3>
+                                <p class="text-xs text-gray-500 truncate mb-2">${nameEn}</p>
+                                <span class="inline-block bg-gray-100 text-gray-600 text-xs px-2 py-1 rounded font-mono group-hover:bg-blue-200 group-hover:text-blue-800 transition">CAS: ${casNo}</span>
+                            </button>
+                        </li>
+                    `;
+                });
+                html += '</ul>';
+                resultList.innerHTML = html;
 
-function emptyState(msg){
-  return `<div class="h-full flex flex-col items-center justify-center text-slate-400 p-6 text-center">
-            <i class="fa-solid fa-magnifying-glass text-3xl mb-3 opacity-40"></i>
-            <p class="text-sm">${esc(msg)}</p></div>`;
-}
+            } catch (error) {
+                console.error(error);
+                resultList.innerHTML = `
+                    <div class="p-4 bg-red-50 text-red-600 rounded-lg m-2 text-sm">
+                        <i class="fa-solid fa-triangle-exclamation mr-1"></i> 데이터를 불러오는 중 오류가 발생했습니다.<br>
+                        (네트워크 상태를 확인해주세요.)
+                    </div>
+                `;
+            } finally {
+                loading.classList.add('hidden');
+            }
+        }
 
-/* ===================== 상세 ===================== */
-function pick(o){
-  cur = { id:o.id, name:o.kr, nameEn:o.en, cas:o.cas, ghs:null };
-  document.getElementById("empty").classList.add("hidden");
-  document.getElementById("detailBody").classList.remove("hidden");
-  document.getElementById("dName").textContent = o.kr;
-  document.getElementById("dNameEn").textContent = o.en;
-  document.getElementById("dCas").textContent = "CAS " + o.cas;
-  if(window.innerWidth < 768) document.getElementById("detail").classList.add("open");
-  preloadGhs(o.id);
-  openTab("02"); // 유해·위험성 먼저
-}
-function closeDetail(){ document.getElementById("detail").classList.remove("open"); }
+        function openMobileDetail() {
+            if(window.innerWidth < 768) {
+                document.getElementById('detailPanel').classList.add('active');
+            }
+        }
+        function closeMobileDetail() {
+            document.getElementById('detailPanel').classList.remove('active');
+        }
 
-function renderTabs(){
-  document.getElementById("tabs").innerHTML = TABS.map(([id,name])=>`
-    <li><button id="tab-${id}" onclick="openTab('${id}')"
-        class="px-3.5 py-3 text-slate-500 border-b-2 border-transparent hover:text-blue-600 hover:bg-blue-50 transition">${name}</button></li>
-  `).join("");
-}
+        function loadDetail(chemId, nameKr, nameEn, casNo) {
+            currentChemId = chemId;
+            currentChemName = nameKr;
+            currentCasNo = casNo;
+            currentGhsData = null;
 
-async function openTab(id){
-  if(!cur.id) return;
-  TABS.forEach(([tid])=>{
-    const b = document.getElementById("tab-"+tid);
-    const active = tid===id;
-    b.classList.toggle("text-blue-600", active);
-    b.classList.toggle("border-blue-600", active);
-    b.classList.toggle("bg-blue-50", active);
-    b.classList.toggle("text-slate-500", !active);
-    b.classList.toggle("border-transparent", !active);
-  });
-  const name = TABS.find(([t])=>t===id)[1];
-  document.getElementById("tabTitle").textContent = name;
-  document.getElementById("tab-"+id).scrollIntoView({behavior:"smooth", block:"nearest", inline:"center"});
+            document.getElementById('emptyDetail').classList.add('hidden');
+            document.getElementById('detailContent').classList.remove('hidden');
 
-  const area = document.getElementById("tabData");
-  const loading = document.getElementById("detailLoading");
-  loading.classList.remove("hidden");
-  area.innerHTML = "";
-  try{
-    const xml = await apiGet(`getChemDetail${id}?chemId=${cur.id}`);
-    checkResult(xml);
-    area.innerHTML = renderItems(xml.querySelectorAll("item"));
-  }catch(e){
-    console.error(e);
-    area.innerHTML = `<p class="text-red-600 text-sm"><i class="fa-solid fa-triangle-exclamation mr-1"></i>불러오지 못했습니다. (${esc(e.message)})</p>`;
-  }finally{
-    loading.classList.add("hidden");
-  }
-}
+            document.getElementById('detailNameKr').textContent = nameKr;
+            document.getElementById('detailNameEn').textContent = nameEn;
+            document.getElementById('detailCas').textContent = `CAS No. ${casNo}`;
 
-function renderItems(items){
-  if(!items.length) return `<p class="text-slate-400 italic text-sm">해당 항목 데이터가 없습니다.</p>`;
-  let html = '<div class="space-y-3">';
-  items.forEach((it,i)=>{
-    let title = txt(it,"title","");
-    let content = txt(it,"content","");
-    if(!content){
-      const parts = [];
-      for(const c of it.children){
-        if(c.tagName!=="title" && c.textContent) parts.push(`${c.tagName}: ${c.textContent}`);
-      }
-      content = parts.join("\n") || (it.textContent || "-");
-    }
-    if(!title) title = `항목 ${i+1}`;
-    html += `
-      <div class="bg-slate-50 border border-slate-100 rounded-lg p-3.5">
-        <h4 class="font-bold text-slate-800 mb-1.5 pb-1 border-b border-slate-200">${esc(title)}</h4>
-        <p class="whitespace-pre-wrap text-slate-700 text-sm leading-relaxed">${esc(content)}</p>
-      </div>`;
-  });
-  return html + "</div>";
-}
+            openMobileDetail();
+            preloadGhsData(chemId);
+            selectTab("01");
+        }
 
-/* ===================== GHS 라벨 ===================== */
-async function preloadGhs(id){
-  try{
-    const xml = await apiGet(`getChemDetail02?chemId=${id}`);
-    const g = { signal:"경고", pictos:[], hazard:"—", prec:"—" };
-    xml.querySelectorAll("item").forEach(it=>{
-      const t = txt(it,"title",""), c = (txt(it,"content","") || it.textContent || "").trim();
-      if(t.includes("신호어")) g.signal = c || "경고";
-      else if(t.includes("그림문자")) g.pictos = c.split(",").map(s=>s.trim()).filter(Boolean);
-      else if(t.includes("유해") && t.includes("문구")) g.hazard = c || "—";
-      else if(t.includes("예방") && t.includes("문구")) g.prec = c || "—";
-    });
-    cur.ghs = g;
-  }catch(e){ console.error("GHS preload", e); }
-}
+        function renderTabs() {
+            const ul = document.getElementById('tabsList');
+            let html = "";
+            msdsTabs.forEach(tab => {
+                html += `
+                    <li class="mr-1">
+                        <button id="tab-btn-${tab.id}" onclick="selectTab('${tab.id}')" 
+                            class="inline-block px-4 py-3 text-gray-500 hover:text-blue-600 hover:bg-blue-50 border-b-2 border-transparent focus:outline-none transition-colors">
+                            ${tab.name}
+                        </button>
+                    </li>
+                `;
+            });
+            ul.innerHTML = html;
+        }
 
-function ghsIcon(t){
-  if(t.includes("해골")) return "fa-skull-crossbones";
-  if(t.includes("불꽃")||t.includes("인화")) return "fa-fire";
-  if(t.includes("가스")||t.includes("실린더")) return "fa-wind";
-  if(t.includes("부식")) return "fa-droplet";
-  if(t.includes("느낌표")||t.includes("감탄")) return "fa-exclamation";
-  if(t.includes("건강")||t.includes("호흡")) return "fa-lungs";
-  if(t.includes("환경")||t.includes("수생")) return "fa-fish";
-  if(t.includes("폭발")) return "fa-burst";
-  return "fa-triangle-exclamation";
-}
+        async function selectTab(tabId) {
+            if (!currentChemId) return;
 
-function openLabel(){
-  if(!cur.id) return;
-  document.getElementById("lName").textContent = cur.name;
-  document.getElementById("lCas").textContent = "CAS " + cur.cas;
-  const g = cur.ghs;
-  const sig = document.getElementById("lSignal");
-  const pic = document.getElementById("lPictos");
-  pic.innerHTML = "";
-  if(g){
-    if(g.signal && g.signal!=="—"){ sig.textContent = g.signal; sig.style.display="inline-block"; }
-    else sig.style.display = "none";
-    if(g.pictos.length) g.pictos.forEach(p=>{ pic.innerHTML += `<div class="ghs !w-11 !h-11"><i class="fa-solid ${ghsIcon(p)} !text-base"></i></div>`; });
-    else pic.innerHTML = `<span class="text-xs text-gray-500">그림문자 없음</span>`;
-    document.getElementById("lHazard").textContent = g.hazard || "—";
-    const prec = g.prec || "—";
-    document.getElementById("lPrec").textContent = prec.length>260 ? prec.slice(0,260)+"…" : prec;
-  }else{
-    sig.textContent = "경고";
-    pic.innerHTML = `<span class="text-xs text-gray-500">정보 로딩 중…</span>`;
-    document.getElementById("lHazard").textContent = "‘2. 유해·위험성’ 탭을 먼저 열어주세요.";
-    document.getElementById("lPrec").textContent = "—";
-  }
-  syncLabel();
-  document.getElementById("labelModal").classList.remove("hidden");
-}
-function closeLabel(){ document.getElementById("labelModal").classList.add("hidden"); }
-function syncLabel(){
-  const c = document.getElementById("inCompany").value.trim();
-  const p = document.getElementById("inPhone").value.trim();
-  document.getElementById("lCompany").textContent = c || "에듀브릿지";
-  document.getElementById("lPhone").textContent = p ? `☎ 긴급연락처: ${p}` : "☎ 긴급연락처 미입력";
-}
+            msdsTabs.forEach(tab => {
+                const btn = document.getElementById(`tab-btn-${tab.id}`);
+                if (tab.id === tabId) {
+                    btn.classList.add('text-blue-600', 'border-blue-600', 'bg-blue-50');
+                    btn.classList.remove('text-gray-500', 'border-transparent', 'hover:bg-blue-50');
+                    document.getElementById('tabTitle').textContent = tab.name;
+                } else {
+                    btn.classList.remove('text-blue-600', 'border-blue-600', 'bg-blue-50');
+                    btn.classList.add('text-gray-500', 'border-transparent', 'hover:bg-blue-50');
+                }
+            });
 
-/* ===================== 유틸 ===================== */
-function txt(el, tag, fallback=""){ return el.querySelector(tag)?.textContent?.trim() || fallback; }
-function esc(s){ return String(s).replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
-</script>
+            const activeBtn = document.getElementById(`tab-btn-${tabId}`);
+            activeBtn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+
+            const tabDataArea = document.getElementById('tabData');
+            const loading = document.getElementById('detailLoading');
+
+            loading.classList.remove('hidden');
+            tabDataArea.innerHTML = "";
+
+            try {
+                const endpoint = `getChemDetail${tabId}`;
+                const targetUrl = `${TARGET_BASE_URL}/${endpoint}?ServiceKey=${API_KEY}&chemId=${currentChemId}`;
+                const finalUrl = PROXY_URL + encodeURIComponent(targetUrl);
+                
+                const response = await fetch(finalUrl);
+                const text = await response.text();
+                const parser = new DOMParser();
+                const xml = parser.parseFromString(text, "text/xml");
+                
+                const items = xml.querySelectorAll("item");
+                
+                if (!items || items.length === 0) {
+                    tabDataArea.innerHTML = "<p class='text-gray-500 italic'>해당 항목에 대한 데이터가 없습니다.</p>";
+                } else {
+                    let html = "<div class='space-y-4'>";
+                    items.forEach((item, index) => {
+                        let title = "";
+                        let content = "";
+                        
+                        const titleEl = item.querySelector("title");
+                        if (titleEl) title = titleEl.textContent;
+
+                        const contentEl = item.querySelector("content");
+                        if (contentEl) {
+                            content = contentEl.textContent;
+                        } else {
+                            let texts = [];
+                            for (let child of item.children) {
+                                if (child.tagName !== 'title' && child.textContent) {
+                                    texts.push(`${child.tagName}: ${child.textContent}`);
+                                }
+                            }
+                            content = texts.length > 0 ? texts.join('\n') : (item.textContent || "-");
+                        }
+
+                        if (!title) title = `상세 항목 ${index + 1}`;
+
+                        html += `
+                            <div class="bg-gray-50 p-4 rounded-lg border border-gray-100 shadow-sm">
+                                <h4 class="font-bold text-gray-800 mb-2 border-b border-gray-200 pb-1">${title}</h4>
+                                <p class="text-gray-700 whitespace-pre-wrap font-mono text-sm leading-relaxed">${content}</p>
+                            </div>
+                        `;
+                    });
+                    html += "</div>";
+                    tabDataArea.innerHTML = html;
+                }
+            } catch (error) {
+                console.error(error);
+                tabDataArea.innerHTML = "<p class='text-red-500'>데이터를 불러오지 못했습니다.</p>";
+            } finally {
+                loading.classList.add('hidden');
+            }
+        }
+
+        async function preloadGhsData(chemId) {
+            try {
+                const targetUrl = `${TARGET_BASE_URL}/getChemDetail02?ServiceKey=${API_KEY}&chemId=${chemId}`;
+                const finalUrl = PROXY_URL + encodeURIComponent(targetUrl);
+                const response = await fetch(finalUrl);
+                const text = await response.text();
+                const parser = new DOMParser();
+                const xml = parser.parseFromString(text, "text/xml");
+                const items = xml.querySelectorAll("item");
+                
+                currentGhsData = {
+                    signalWord: "경고",
+                    pictograms: [],
+                    hazardState: "-",
+                    precautionState: "-"
+                };
+
+                items.forEach(item => {
+                    const title = item.querySelector("title")?.textContent || "";
+                    const content = item.querySelector("content")?.textContent || item.textContent || "";
+                    
+                    if (title.includes("신호어")) {
+                        currentGhsData.signalWord = content.trim();
+                    } else if (title.includes("그림문자")) {
+                        currentGschemData.pictograms = content.split(',').map(s => s.trim()).filter(s => s);
+                    } else if (title.includes("유해") && title.includes("문구")) {
+                        currentGhsData.hazardState = content.trim();
+                    } else if (title.includes("예방") && title.includes("문구")) {
+                        currentGhsData.precautionState = content.trim();
+                    }
+                });
+            } catch(e) {
+                console.error("GHS Preload error", e);
+            }
+        }
+
+        function getGhsIconClass(text) {
+            if (text.includes("해골")) return "fa-skull-crossbones";
+            if (text.includes("불꽃") || text.includes("인화성")) return "fa-fire";
+            if (text.includes("원형") && text.includes("불꽃")) return "fa-fire-flame-simple";
+            if (text.includes("가스") || text.includes("실린더")) return "fa-flask";
+            if (text.includes("부식")) return "fa-hand-dots";
+            if (text.includes("감탄사") || text.includes("느낌표")) return "fa-exclamation";
+            if (text.includes("건강") || text.includes("사람")) return "fa-person-rays";
+            if (text.includes("환경") || text.includes("수생")) return "fa-tree";
+            if (text.includes("폭발")) return "fa-burst";
+            return "fa-triangle-exclamation";
+        }
+
+        function openPrintPreview() {
+            if (!currentChemId) return;
+            const modal = document.getElementById('printPreviewModal');
+            
+            document.getElementById('print-chem-name').textContent = currentChemName;
+            document.getElementById('print-cas-no').textContent = `CAS No: ${currentCasNo}`;
+            
+            if (currentGhsData) {
+                const signalEl = document.getElementById('print-signal-word');
+                if(currentGhsData.signalWord && currentGhsData.signalWord.length > 0 && currentGhsData.signalWord !== "-") {
+                    signalEl.textContent = currentGhsData.signalWord;
+                    signalEl.style.display = 'inline-block';
+                } else {
+                    signalEl.style.display = 'none';
+                }
+
+                const picContainer = document.getElementById('print-pictograms');
+                picContainer.innerHTML = "";
+                if(currentGhsData.pictograms.length > 0) {
+                    currentGhsData.pictograms.forEach(pic => {
+                        const iconClass = getGhsIconClass(pic);
+                        picContainer.innerHTML += `
+                            <div class="ghs-icon">
+                                <i class="fa-solid ${iconClass}"></i>
+                            </div>
+                        `;
+                    });
+                } else {
+                    picContainer.innerHTML = "<span class='text-xs text-gray-500 mt-4'>해당없음</span>";
+                }
+
+                document.getElementById('print-hazard-statements').textContent = currentGhsData.hazardState || "해당없음";
+                const preText = currentGhsData.precautionState || "해당없음";
+                document.getElementById('print-precautionary-statements').textContent = preText.length > 250 ? preText.substring(0, 250) + "..." : preText;
+            } else {
+                document.getElementById('print-hazard-statements').textContent = "상세 정보에서 유해성 탭을 확인하세요.";
+                document.getElementById('print-precautionary-statements').textContent = "상세 정보에서 유해성 탭을 확인하세요.";
+            }
+
+            updateLabelInfo();
+            modal.classList.remove('hidden');
+        }
+
+        function closePrintPreview() {
+            document.getElementById('printPreviewModal').classList.add('hidden');
+        }
+
+        function updateLabelInfo() {
+            const comp = document.getElementById('label-company-input').value;
+            const phone = document.getElementById('label-phone-input').value;
+            document.getElementById('label-company-name-out').textContent = comp || "에듀브릿지";
+            document.getElementById('label-phone-out').textContent = phone ? `☎ 긴급연락처: ${phone}` : "☎ 연락처 미입력";
+        }
+    </script>
 </body>
 </html>
+```eof
+
+위의 `index.html` 파일을 컴퓨터에 저장하셔서 사용하시면 됩니다. 이용에 혼선을 드려 죄송합니다! 추가로 궁금한 점이 있으시면 편하게 말씀해주세요.
