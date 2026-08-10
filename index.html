@@ -30,12 +30,17 @@
         @media print {
             body * { visibility: hidden; }
             #printLabelContainer, #printLabelContainer * { visibility: visible; }
+            
+            /* 출력 위치 중앙 정렬을 위한 여백 초기화 및 중앙 배치 설정 */
+            html, body { margin: 0; padding: 0; width: 100%; height: 100%; }
+            
             #printLabelContainer {
                 position: absolute;
                 left: 0;
+                right: 0;
                 top: 0;
+                margin: 0 auto; /* 수평 중앙 정렬 */
                 width: 100mm; /* SLP-DL410 최대 인쇄폭에 맞춤 */
-                margin: 0;
                 padding: 0;
                 font-family: 'Noto Sans KR', sans-serif;
                 color: black;
@@ -48,7 +53,7 @@
             }
             .ghs-picto-print i { transform: rotate(-45deg); font-size: 8mm; color: black; }
             
-            @page { size: 100mm 150mm; margin: 2mm; }
+            @page { size: 100mm 150mm; margin: 0; }
         }
         
         /* 미리보기 화면용 CSS (모달 내부) */
@@ -257,10 +262,10 @@
 
     <!-- Printable Label Container (Hidden on screen, visible only on print) -->
     <div id="printLabelContainer" class="hidden">
-        <div style="border: 2px solid black; padding: 5mm; height: 100%; box-sizing: border-box; display: flex; flex-direction: column;">
+        <div style="border: 2px solid black; padding: 5mm; height: 100%; box-sizing: border-box; display: flex; flex-direction: column; background-color: white; margin: 0 auto;">
             
-            <!-- 물질명 및 CAS -->
-            <div style="border-bottom: 2px solid black; padding-bottom: 3mm; margin-bottom: 3mm;">
+            <!-- 물질명 및 CAS (중앙 정렬) -->
+            <div style="border-bottom: 2px solid black; padding-bottom: 3mm; margin-bottom: 3mm; text-align: center;">
                 <h1 id="printTitle" style="font-size: 20px; font-weight: bold; word-break: keep-all; margin: 0 0 2mm 0; line-height: 1.2;">화학물질명</h1>
                 <p style="font-size: 14px; margin: 0;"><strong>CAS No:</strong> <span id="printCas"></span></p>
             </div>
@@ -315,8 +320,8 @@
 
                 <!-- 실시간 뷰어 박스 -->
                 <div id="labelPreviewBox" class="label-preview-box text-sm">
-                    <!-- 헤더 -->
-                    <div class="border-b-2 border-gray-800 pb-2 mb-2">
+                    <!-- 헤더 (중앙 정렬) -->
+                    <div class="border-b-2 border-gray-800 pb-2 mb-2 text-center">
                         <h2 id="previewTitle" class="text-xl font-bold leading-tight mb-1 text-gray-900 break-keep">물질명</h2>
                         <p class="text-xs text-gray-700"><strong>CAS No:</strong> <span id="previewCas"></span></p>
                     </div>
@@ -470,12 +475,19 @@
 
         // 1. Search Chemical List
         async function fetchChemList(pageNo = 1) {
-            const keyword = searchKeywordInput.value.trim();
-            const searchType = searchTypeSelect.value;
+            let keyword = searchKeywordInput.value.trim();
+            let searchType = searchTypeSelect.value;
             
             if (!keyword) {
                 showAlert("검색어를 입력해주세요.");
                 return;
+            }
+
+            // [핵심 변경] CAS 번호 패턴(예: 67-64-1) 입력 시 자동으로 검색 기준을 CAS로 변경
+            const casRegex = /^\d{2,7}-\d{2}-\d$/;
+            if (casRegex.test(keyword)) {
+                searchType = 'casNo';
+                searchTypeSelect.value = 'casNo'; // 화면의 드롭다운도 같이 변경
             }
 
             currentSearchQuery = keyword;
@@ -496,7 +508,7 @@
             try {
                 let queryParams = `?serviceKey=${API_KEY}&pageNo=${pageNo}&numOfRows=${numOfRows}`;
                 
-                // Assuming typical KOSHA parameter naming for search conditions (searchCnd)
+                // Based on common KOSHA API patterns (searchCnd)
                 let searchCnd = '0';
                 if(searchType === 'chemNameKor') searchCnd = '0';
                 else if(searchType === 'chemNameEng') searchCnd = '1';
