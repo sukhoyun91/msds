@@ -14,26 +14,21 @@
     <style>
         body { font-family: 'Inter', 'Noto Sans KR', sans-serif; background-color: #f3f4f6; overflow-x: hidden; }
         
-        /* 로딩 스피너 애니메이션 */
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         .spinner { border: 4px solid rgba(0, 0, 0, 0.1); border-left-color: #3b82f6; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
         
-        /* 모바일 슬라이드 오버 (상세창) */
         .slide-over { transition: transform 0.3s ease-in-out; }
         @media (max-width: 767px) {
             .mobile-detail-panel { position: fixed; top: 0; right: 0; bottom: 0; width: 100%; z-index: 50; transform: translateX(100%); background: #f9fafb; }
             .mobile-detail-panel.active { transform: translateX(0); }
         }
 
-        /* 탭 스크롤 숨기기 */
         .hide-scrollbar::-webkit-scrollbar { display: none; }
         .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
-        /* GHS 그림문자 아이콘 스타일 (빨간 마름모) */
         .ghs-icon { display: inline-flex; justify-content: center; align-items: center; width: 50px; height: 50px; border: 3px solid #dc2626; transform: rotate(45deg); margin: 10px; background-color: white; }
         .ghs-icon i { transform: rotate(-45deg); color: #000; font-size: 24px; }
 
-        /* 프린트 전용 스타일 (현장 라벨 100mm 규격 완벽 중앙 정렬 고정) */
         @media print {
             @page { size: 100mm 150mm; margin: 0; }
             body * { visibility: hidden !important; }
@@ -74,22 +69,13 @@
         </div>
 
         <div class="p-5 flex-shrink-0 bg-gray-50 border-b border-gray-200">
-            <div class="mb-4">
-                <label class="block text-sm font-medium text-gray-700 mb-1">검색 기준</label>
-                <select id="searchType" class="w-full p-2.5 bg-white border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all">
-                    <option value="name">물질명 (국문/영문)</option>
-                    <option value="cas">CAS 번호</option>
-                </select>
-            </div>
-            
             <div class="mb-2">
-                <label class="block text-sm font-medium text-gray-700 mb-1">검색어 (텍스트 또는 라벨 사진)</label>
+                <label class="block text-sm font-medium text-gray-700 mb-1">통합 검색어 (물질명, CAS 번호, 사진)</label>
                 <div class="flex relative shadow-sm rounded-lg">
-                    <input type="text" id="searchInput" placeholder="예: 황산, 7664-93-9" class="flex-1 p-3 pl-4 border border-gray-300 rounded-l-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-base" onkeypress="handleKeyPress(event)">
+                    <input type="text" id="searchInput" placeholder="예: 황산 또는 7664-93-9" class="flex-1 p-3 pl-4 border border-gray-300 rounded-l-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-base" onkeypress="handleKeyPress(event)">
                     
-                    <!-- 카메라 버튼 -->
                     <div class="relative bg-white border-y border-gray-300 flex items-center px-2">
-                        <label for="cameraInput" class="cursor-pointer text-gray-400 hover:text-blue-600 transition-colors p-2 rounded-full hover:bg-blue-50">
+                        <label for="cameraInput" class="cursor-pointer text-gray-400 hover:text-blue-600 transition-colors p-2 rounded-full hover:bg-blue-50" title="라벨 촬영">
                             <i class="fa-solid fa-camera text-xl"></i>
                         </label>
                         <input type="file" id="cameraInput" accept="image/*" capture="environment" class="hidden" onchange="handleImageUpload(event)">
@@ -99,11 +85,10 @@
                         <i class="fa-solid fa-magnifying-glass"></i>
                     </button>
                 </div>
-                <p class="text-xs text-gray-500 mt-2"><i class="fa-solid fa-circle-info mr-1"></i>카메라를 눌러 현장 라벨을 찍으면 텍스트를 추출합니다.</p>
+                <p class="text-xs text-gray-500 mt-2"><i class="fa-solid fa-circle-info mr-1"></i>입력된 형식(숫자/문자)을 자동 인식하여 조회합니다.</p>
             </div>
         </div>
 
-        <!-- 검색 결과 리스트 -->
         <div id="resultList" class="flex-1 overflow-y-auto bg-white p-2">
             <div class="h-full flex flex-col items-center justify-center text-gray-400">
                 <i class="fa-solid fa-magnifying-glass text-4xl mb-3 text-gray-300"></i>
@@ -111,23 +96,20 @@
             </div>
         </div>
         
-        <!-- 로딩 오버레이 (목록 검색용) -->
         <div id="listLoading" class="hidden absolute inset-0 bg-white bg-opacity-80 flex flex-col items-center justify-center z-20">
             <div class="spinner"></div>
-            <p class="mt-3 text-sm font-medium text-blue-600">데이터를 불러오는 중...</p>
+            <p class="mt-3 text-sm font-medium text-blue-600">데이터를 안전하게 조회 중...</p>
         </div>
     </div>
 
     <!-- Right Main Area (Detail Panel) -->
     <div id="detailPanel" class="mobile-detail-panel slide-over w-full md:flex-1 bg-gray-50 flex flex-col relative h-full">
         
-        <!-- 모바일 닫기 버튼 (우측 상단) -->
         <button onclick="closeMobileDetail()" class="md:hidden absolute top-4 right-4 z-20 bg-white rounded-full w-10 h-10 shadow-md flex items-center justify-center text-gray-600 hover:text-red-500">
             <i class="fa-solid fa-xmark text-xl"></i>
         </button>
 
         <div id="detailContent" class="h-full flex flex-col hidden">
-            <!-- Header Info -->
             <div class="bg-white p-6 border-b border-gray-200 shadow-sm pt-14 md:pt-6 relative">
                 <div class="pr-12 md:pr-0">
                     <h2 id="detailNameKr" class="text-2xl md:text-3xl font-bold text-gray-800 mb-1 leading-tight break-words">화학물질명</h2>
@@ -136,7 +118,6 @@
                         <span id="detailCas" class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800 border border-blue-200">
                             CAS No. 000-00-0
                         </span>
-                        <!-- 출력 버튼 -->
                         <button onclick="openPrintPreview()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-1.5 rounded text-sm font-medium transition shadow-sm flex items-center gap-2">
                             <i class="fa-solid fa-print"></i> 라벨출력
                         </button>
@@ -144,14 +125,11 @@
                 </div>
             </div>
 
-            <!-- Tabs -->
             <div class="bg-white border-b border-gray-200">
                 <ul id="tabsList" class="flex overflow-x-auto hide-scrollbar text-sm font-medium whitespace-nowrap px-2">
-                    <!-- JS로 탭 동적 생성 -->
                 </ul>
             </div>
 
-            <!-- Tab Content -->
             <div class="flex-1 overflow-y-auto p-4 md:p-6 bg-gray-50 relative">
                 <div id="tabContentArea" class="bg-white rounded-xl shadow-sm border border-gray-200 p-5 min-h-full">
                     <h3 id="tabTitle" class="text-lg font-bold text-gray-800 mb-4 pb-2 border-b border-gray-100">항목 상세</h3>
@@ -160,7 +138,6 @@
                     </div>
                 </div>
                 
-                <!-- 로딩 오버레이 (상세 데이터용) -->
                 <div id="detailLoading" class="hidden absolute inset-0 bg-gray-50 flex flex-col items-center justify-center z-10">
                     <div class="spinner"></div>
                     <p class="mt-3 text-sm font-medium text-blue-600">상세 정보를 불러오는 중...</p>
@@ -168,7 +145,6 @@
             </div>
         </div>
 
-        <!-- 초기 상태 화면 -->
         <div id="emptyDetail" class="h-full flex flex-col items-center justify-center text-gray-400 bg-gray-50">
             <i class="fa-regular fa-folder-open text-6xl mb-4 text-gray-300"></i>
             <p class="text-lg font-medium text-gray-500">목록에서 화학물질을 선택해주세요.</p>
@@ -186,20 +162,15 @@
             </div>
             <style>@keyframes scan { 0% { top: 0; } 50% { top: 100%; } 100% { top: 0; } }</style>
             <h3 class="text-lg font-bold text-gray-800 mb-1">이미지 분석 중</h3>
-            <p class="text-sm text-gray-500 mb-4">현장 라벨에서 화학물질명 또는 CAS 번호를 추출하고 있습니다...</p>
+            <p class="text-sm text-gray-500 mb-4">현장 라벨에서 화학물질명 또는 CAS 번호를 자동 추출하고 있습니다...</p>
         </div>
     </div>
 
-    <!-- 인쇄 미리보기 (Print Preview) 모달 -->
+    <!-- 인쇄 미리보기 모달 -->
     <div id="printPreviewModal" class="hidden fixed inset-0 bg-gray-800 bg-opacity-75 z-50 flex flex-col items-center justify-center p-4">
         <div id="print-controls" class="bg-white w-full max-w-4xl rounded-xl shadow-2xl overflow-hidden flex flex-col md:flex-row h-[90vh]">
-            
-            <!-- 왼쪽: 라벨 미리보기 영역 (100mm 폭 비율) -->
             <div class="bg-gray-200 flex-1 p-4 md:p-8 flex items-center justify-center overflow-y-auto">
-                <!-- 실제 프린트 되는 영역 (id="print-label-area") -->
                 <div id="print-label-area" class="bg-white border border-gray-400 shadow-md relative" style="width: 100mm; min-height: 140mm; padding: 15px;">
-                    
-                    <!-- 1. 명칭 및 신호어 -->
                     <div class="border-b-2 border-black pb-2 mb-3">
                         <h1 id="print-chem-name" class="text-3xl font-black text-black leading-tight break-words tracking-tighter">화학물질명</h1>
                         <p id="print-cas-no" class="text-sm font-bold text-gray-700 mt-1">CAS No: 000-00-0</p>
@@ -208,24 +179,18 @@
                         </div>
                     </div>
 
-                    <!-- 2. 그림문자 (GHS) -->
-                    <div id="print-pictograms" class="flex flex-wrap justify-center gap-2 mb-3 min-h-[60px]">
-                        <!-- 아이콘 삽입 위치 -->
-                    </div>
+                    <div id="print-pictograms" class="flex flex-wrap justify-center gap-2 mb-3 min-h-[60px]"></div>
 
-                    <!-- 3. 유해위험문구 -->
                     <div class="mb-3 text-xs leading-tight">
                         <p class="font-bold border-b border-gray-300 mb-1 pb-1">유해·위험 문구</p>
                         <p id="print-hazard-statements" class="text-black break-words line-clamp-6">데이터를 불러오는 중...</p>
                     </div>
 
-                    <!-- 4. 예방조치문구 -->
                     <div class="mb-4 text-[10px] leading-tight flex-1">
                         <p class="font-bold border-b border-gray-300 mb-1 pb-1">예방조치 문구</p>
                         <p id="print-precautionary-statements" class="text-black break-words line-clamp-5">데이터를 불러오는 중...</p>
                     </div>
 
-                    <!-- 5. 공급자 정보 (하단 고정) -->
                     <div class="border-t-2 border-black pt-2 mt-auto text-[11px]">
                         <div class="flex justify-between items-end">
                             <div>
@@ -240,7 +205,6 @@
                 </div>
             </div>
 
-            <!-- 오른쪽: 컨트롤러 -->
             <div class="w-full md:w-80 bg-white border-l border-gray-200 flex flex-col">
                 <div class="p-4 border-b border-gray-200 flex justify-between items-center bg-gray-50">
                     <h3 class="font-bold text-lg"><i class="fa-solid fa-print text-indigo-600 mr-2"></i>라벨 인쇄 설정</h3>
@@ -285,10 +249,14 @@
     </div>
 
     <script>
-        const API_KEY = "k0HoIu+ClNvs1d+PTqR1cUFnISGMOlB7jAQkxxoGBtd2i/+vUDWPm5HAdhDqABHxEq/GFOWxp5Hs/n3jXxE7GA==";
-        const TARGET_BASE_URL = "https://apis.data.go.kr/B552468/msdschem";
-        // CORS 우회를 위한 퍼블릭 프록시 적용
-        const PROXY_URL = "https://api.allorigins.win/raw?url=";
+        // API 인증키 (인코딩 상태 그대로 보존)
+        const API_KEY = "k0HoIu%2BClNvs1d%2BPTqR1cUFnISGMOlB7jAQkxxoGBtd2i%2F%2BvUDWPm5HAdhDqABHxEq%2FGFOWxp5Hs%2Fn3jXxE7GA%3D%3D";
+        
+        // 다중 퍼블릭 프록시 서버 목록 (403 및 타임아웃 방어)
+        const PROXY_URLS = [
+            "https://api.allorigins.win/raw?url=",
+            "https://corsproxy.io/?"
+        ];
 
         let currentChemId = null;
         let currentChemName = "";
@@ -329,12 +297,28 @@
                 modal.classList.add('hidden');
                 searchChem();
                 e.target.value = '';
-            }, 2500);
+            }, 2000);
+        }
+
+        // 403 에러 방지를 위한 인코딩 및 다중 프록시 패치 함수
+        async function fetchWithProxy(targetUrl) {
+            let lastError = null;
+            for (let proxy of PROXY_URLS) {
+                try {
+                    const finalUrl = proxy + encodeURIComponent(targetUrl);
+                    const response = await fetch(finalUrl);
+                    if (response.ok) {
+                        return await response.text();
+                    }
+                } catch (e) {
+                    lastError = e;
+                }
+            }
+            throw lastError || new Error("서버와의 통신이 원활하지 않습니다.");
         }
 
         async function searchChem() {
             const input = document.getElementById('searchInput').value.trim();
-            let searchType = document.getElementById('searchType').value;
             const resultList = document.getElementById('resultList');
             const loading = document.getElementById('listLoading');
 
@@ -343,30 +327,24 @@
                 return;
             }
 
-            const casPattern = /^[0-9]+-[0-9]{2}-[0-9]$/;
-            if (casPattern.test(input)) {
-                searchType = 'cas';
-                document.getElementById('searchType').value = 'cas';
-            }
-
-            let searchCnd = searchType === 'cas' ? "1" : "0"; 
+            const casPattern = /^[0-9]+(-[0-9]{2}-[0-9])?$/;
+            let searchCnd = casPattern.test(input) ? "1" : "0"; 
 
             loading.classList.remove('hidden');
             resultList.innerHTML = "";
 
             try {
-                const targetUrl = `${TARGET_BASE_URL}/getChemList?ServiceKey=${API_KEY}&pageNo=1&numOfRows=50&searchCnd=${searchCnd}&searchWrd=${encodeURIComponent(input)}`;
-                const finalUrl = PROXY_URL + encodeURIComponent(targetUrl);
+                // ServiceKey는 한 번만 인코딩되도록 명시적 처리
+                const targetUrl = `${TARGET_BASE_URL}/getChemList?ServiceKey=${encodeURIComponent(API_KEY)}&pageNo=1&numOfRows=50&searchCnd=${searchCnd}&searchWrd=${encodeURIComponent(input)}`;
+                const text = await fetchWithProxy(targetUrl);
                 
-                const response = await fetch(finalUrl);
-                const text = await response.text();
                 const parser = new DOMParser();
                 const xml = parser.parseFromString(text, "text/xml");
                 
                 const resultCode = xml.querySelector("resultCode")?.textContent;
                 if (resultCode && resultCode !== "00") {
                     const resultMsg = xml.querySelector("resultMsg")?.textContent;
-                    throw new Error(`API 오류: ${resultMsg}`);
+                    throw new Error(`API 오류: ${resultMsg || '인증키 또는 파라미터 오류'}`);
                 }
 
                 const items = xml.querySelectorAll("item");
@@ -407,7 +385,7 @@
                 resultList.innerHTML = `
                     <div class="p-4 bg-red-50 text-red-600 rounded-lg m-2 text-sm">
                         <i class="fa-solid fa-triangle-exclamation mr-1"></i> 데이터를 불러오는 중 오류가 발생했습니다.<br>
-                        (네트워크 상태를 확인해주세요.)
+                        <span class="text-xs opacity-80">(${error.message})</span>
                     </div>
                 `;
             } finally {
@@ -484,11 +462,9 @@
 
             try {
                 const endpoint = `getChemDetail${tabId}`;
-                const targetUrl = `${TARGET_BASE_URL}/${endpoint}?ServiceKey=${API_KEY}&chemId=${currentChemId}`;
-                const finalUrl = PROXY_URL + encodeURIComponent(targetUrl);
+                const targetUrl = `${TARGET_BASE_URL}/${endpoint}?ServiceKey=${encodeURIComponent(API_KEY)}&chemId=${currentChemId}`;
+                const text = await fetchWithProxy(targetUrl);
                 
-                const response = await fetch(finalUrl);
-                const text = await response.text();
                 const parser = new DOMParser();
                 const xml = parser.parseFromString(text, "text/xml");
                 
@@ -540,10 +516,8 @@
 
         async function preloadGhsData(chemId) {
             try {
-                const targetUrl = `${TARGET_BASE_URL}/getChemDetail02?ServiceKey=${API_KEY}&chemId=${chemId}`;
-                const finalUrl = PROXY_URL + encodeURIComponent(targetUrl);
-                const response = await fetch(finalUrl);
-                const text = await response.text();
+                const targetUrl = `${TARGET_BASE_URL}/getChemDetail02?ServiceKey=${encodeURIComponent(API_KEY)}&chemId=${chemId}`;
+                const text = await fetchWithProxy(targetUrl);
                 const parser = new DOMParser();
                 const xml = parser.parseFromString(text, "text/xml");
                 const items = xml.querySelectorAll("item");
@@ -562,7 +536,7 @@
                     if (title.includes("신호어")) {
                         currentGhsData.signalWord = content.trim();
                     } else if (title.includes("그림문자")) {
-                        currentGschemData.pictograms = content.split(',').map(s => s.trim()).filter(s => s);
+                        currentGhsData.pictograms = content.split(',').map(s => s.trim()).filter(s => s);
                     } else if (title.includes("유해") && title.includes("문구")) {
                         currentGhsData.hazardState = content.trim();
                     } else if (title.includes("예방") && title.includes("문구")) {
@@ -643,6 +617,3 @@
     </script>
 </body>
 </html>
-```eof
-
-위의 `index.html` 파일을 컴퓨터에 저장하셔서 사용하시면 됩니다. 이용에 혼선을 드려 죄송합니다! 추가로 궁금한 점이 있으시면 편하게 말씀해주세요.
