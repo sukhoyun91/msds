@@ -106,7 +106,7 @@
         <!-- 로딩 오버레이 (목록 검색용) -->
         <div id="listLoading" class="hidden absolute inset-0 bg-white bg-opacity-80 flex flex-col items-center justify-center z-20">
             <div class="spinner"></div>
-            <p class="mt-3 text-sm font-medium text-blue-600">데이터를 분석 및 조회 중...</p>
+            <p class="mt-3 text-sm font-medium text-blue-600">데이터를 안전하게 조회 중...</p>
         </div>
     </div>
 
@@ -270,7 +270,8 @@
     <script>
         const API_KEY = "k0HoIu+ClNvs1d+PTqR1cUFnISGMOlB7jAQkxxoGBtd2i/+vUDWPm5HAdhDqABHxEq/GFOWxp5Hs/n3jXxE7GA==";
         const TARGET_BASE_URL = "https://apis.data.go.kr/B552468/msdschem";
-        const PROXY_URL = "https://api.allorigins.win/raw?url=";
+        // 안정성이 강화된 corsproxy.io 퍼블릭 프록시 적용
+        const PROXY_URL = "https://corsproxy.io/?";
 
         let currentChemId = null;
         let currentChemName = "";
@@ -314,6 +315,16 @@
             }, 2000);
         }
 
+        // 안정적인 페치 요청 함수 (프록시 경로 자동 연동)
+        async function fetchWithProxy(targetUrl) {
+            const finalUrl = PROXY_URL + encodeURIComponent(targetUrl);
+            const response = await fetch(finalUrl);
+            if (!response.ok) {
+                throw new Error(`HTTP 에러 발생: ${response.status}`);
+            }
+            return await response.text();
+        }
+
         // 통합 검색 및 자동 형식 판독 로직
         async function searchChem() {
             const input = document.getElementById('searchInput').value.trim();
@@ -325,7 +336,6 @@
                 return;
             }
 
-            // CAS 번호 패턴(예: 7664-93-9) 또는 순수 숫자인지 자동 판독
             const casPattern = /^[0-9]+(-[0-9]{2}-[0-9])?$/;
             let searchCnd = casPattern.test(input) ? "1" : "0"; 
 
@@ -334,17 +344,15 @@
 
             try {
                 const targetUrl = `${TARGET_BASE_URL}/getChemList?ServiceKey=${API_KEY}&pageNo=1&numOfRows=50&searchCnd=${searchCnd}&searchWrd=${encodeURIComponent(input)}`;
-                const finalUrl = PROXY_URL + encodeURIComponent(targetUrl);
+                const text = await fetchWithProxy(targetUrl);
                 
-                const response = await fetch(finalUrl);
-                const text = await response.text();
                 const parser = new DOMParser();
                 const xml = parser.parseFromString(text, "text/xml");
                 
                 const resultCode = xml.querySelector("resultCode")?.textContent;
                 if (resultCode && resultCode !== "00") {
                     const resultMsg = xml.querySelector("resultMsg")?.textContent;
-                    throw new Error(`API 오류: ${resultMsg}`);
+                    throw new Error(`API 오류: ${resultMsg || '알 수 없는 오류'}`);
                 }
 
                 const items = xml.querySelectorAll("item");
@@ -385,7 +393,7 @@
                 resultList.innerHTML = `
                     <div class="p-4 bg-red-50 text-red-600 rounded-lg m-2 text-sm">
                         <i class="fa-solid fa-triangle-exclamation mr-1"></i> 데이터를 불러오는 중 오류가 발생했습니다.<br>
-                        (네트워크 상태를 확인해주세요.)
+                        <span class="text-xs opacity-80">(${error.message})</span>
                     </div>
                 `;
             } finally {
@@ -463,10 +471,8 @@
             try {
                 const endpoint = `getChemDetail${tabId}`;
                 const targetUrl = `${TARGET_BASE_URL}/${endpoint}?ServiceKey=${API_KEY}&chemId=${currentChemId}`;
-                const finalUrl = PROXY_URL + encodeURIComponent(targetUrl);
+                const text = await fetchWithProxy(targetUrl);
                 
-                const response = await fetch(finalUrl);
-                const text = await response.text();
                 const parser = new DOMParser();
                 const xml = parser.parseFromString(text, "text/xml");
                 
@@ -519,9 +525,7 @@
         async function preloadGhsData(chemId) {
             try {
                 const targetUrl = `${TARGET_BASE_URL}/getChemDetail02?ServiceKey=${API_KEY}&chemId=${chemId}`;
-                const finalUrl = PROXY_URL + encodeURIComponent(targetUrl);
-                const response = await fetch(finalUrl);
-                const text = await response.text();
+                const text = await fetchWithProxy(targetUrl);
                 const parser = new DOMParser();
                 const xml = parser.parseFromString(text, "text/xml");
                 const items = xml.querySelectorAll("item");
