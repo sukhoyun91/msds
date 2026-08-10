@@ -3,8 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <!-- STREAMING_CHUNK:Configuring document title and meta... -->
-    <title>에듀브릿지 - KOSHA MSDS 현장조회 시스템</title>
+    <title>에듀브릿지 MSDS 현장조회 시스템</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- FontAwesome (아이콘) -->
@@ -13,7 +12,6 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     
     <style>
-        /* STREAMING_CHUNK:Styling layout components... */
         body { font-family: 'Inter', 'Noto Sans KR', sans-serif; background-color: #f3f4f6; overflow-x: hidden; }
         
         /* 로딩 스피너 애니메이션 */
@@ -38,15 +36,14 @@
         /* 프린트 전용 스타일 (현장 라벨 100mm 규격 완벽 중앙 정렬 고정) */
         @media print {
             @page { size: 100mm 150mm; margin: 0; }
-            body * { visibility: hidden !important; } /* 전체 화면 숨기기 */
+            body * { visibility: hidden !important; }
             
-            /* 라벨 영역만 보이게 하고 절대 정중앙 배치 */
             #print-label-area, #print-label-area * { visibility: visible !important; }
             #print-label-area {
                 position: fixed !important;
                 left: 50% !important;
                 top: 50% !important;
-                transform: translate(-50%, -50%) !important; /* 정확히 정중앙으로 이동 */
+                transform: translate(-50%, -50%) !important;
                 width: 95mm !important;
                 height: 140mm !important;
                 padding: 5mm !important;
@@ -60,20 +57,18 @@
                 z-index: 99999 !important;
             }
             
-            /* 프린트 모달 컨트롤러 숨기기 */
             #printPreviewModal, #print-controls { display: none !important; }
         }
     </style>
 </head>
 <body class="h-screen flex flex-col md:flex-row overflow-hidden text-gray-800">
 
-    <!-- STREAMING_CHUNK:Rendering sidebar layout... -->
     <!-- Left Sidebar (Search Panel) -->
     <div class="w-full md:w-1/3 lg:w-1/4 bg-white border-r border-gray-200 flex flex-col h-full z-10 shadow-lg md:shadow-none relative">
         <div class="p-5 border-b border-gray-200 bg-blue-600 text-white">
             <h1 class="text-xl font-bold flex items-center gap-2">
                 <i class="fa-solid fa-flask text-2xl"></i>
-                에듀브릿지 MSDS 현장조회
+                에듀브릿지 MSDS 검색
             </h1>
             <p class="text-xs text-blue-100 mt-1">한국산업안전보건공단 API 연동</p>
         </div>
@@ -123,7 +118,6 @@
         </div>
     </div>
 
-    <!-- STREAMING_CHUNK:Rendering detail panel area... -->
     <!-- Right Main Area (Detail Panel) -->
     <div id="detailPanel" class="mobile-detail-panel slide-over w-full md:flex-1 bg-gray-50 flex flex-col relative h-full">
         
@@ -182,7 +176,6 @@
         </div>
     </div>
 
-    <!-- STREAMING_CHUNK:Initializing modals for OCR and Print... -->
     <!-- OCR 시뮬레이션 모달 -->
     <div id="ocrModal" class="hidden fixed inset-0 bg-black bg-opacity-70 z-50 flex items-center justify-center backdrop-blur-sm">
         <div class="bg-white p-8 rounded-2xl shadow-2xl flex flex-col items-center w-11/12 max-w-sm text-center">
@@ -240,7 +233,7 @@
                                 <p id="label-phone-out">☎ 긴급연락처: 000-0000-0000</p>
                             </div>
                             <div class="text-right text-[8px] text-gray-500">
-                                에듀브릿지 안전관리시스템
+                                에듀브릿지 현장안전시스템
                             </div>
                         </div>
                     </div>
@@ -259,7 +252,7 @@
                         <h4 class="text-sm font-bold text-gray-700 mb-2 border-l-4 border-indigo-500 pl-2">추가 정보 입력 (선택)</h4>
                         <div class="space-y-3">
                             <div>
-                                <label class="block text-xs text-gray-500 mb-1">회사명 / 현장명</label>
+                                <label class="block text-xs text-gray-500 mb-1">회사명 / 부서명</label>
                                 <input type="text" id="label-company-input" onkeyup="updateLabelInfo()" placeholder="예: 에듀브릿지" class="w-full p-2 text-sm border rounded focus:ring-1 focus:ring-indigo-500 outline-none" value="에듀브릿지">
                             </div>
                             <div>
@@ -274,8 +267,8 @@
                     </div>
                     
                     <div class="bg-gray-100 p-3 rounded-lg text-xs text-gray-600 mb-4">
-                        <p class="font-bold mb-1"><i class="fa-solid fa-mobile-screen mr-1"></i> 프린터 연결 팁</p>
-                        블루투스 프린터(SLP-DL410 등) 페어링 후 인쇄를 누르세요.
+                        <p class="font-bold mb-1"><i class="fa-solid fa-mobile-screen mr-1"></i> 인쇄 안내</p>
+                        블루투스 프린터(SLP-DL410 등) 연결 후 [시스템 기본 인쇄]를 누르시면 100mm 용지 정중앙에 출력됩니다.
                     </div>
                 </div>
 
@@ -291,17 +284,16 @@
         </div>
     </div>
 
-    <!-- STREAMING_CHUNK:Implementing core application scripts... -->
     <script>
-        // API Key (디코딩된 키 사용)
         const API_KEY = "k0HoIu+ClNvs1d+PTqR1cUFnISGMOlB7jAQkxxoGBtd2i/+vUDWPm5HAdhDqABHxEq/GFOWxp5Hs/n3jXxE7GA==";
-        const BASE_URL = "https://apis.data.go.kr/B552468/msdschem";
+        const TARGET_BASE_URL = "https://apis.data.go.kr/B552468/msdschem";
+        // CORS 우회를 위한 퍼블릭 프록시 적용
+        const PROXY_URL = "https://api.allorigins.win/raw?url=";
 
-        // 전역 상태
         let currentChemId = null;
         let currentChemName = "";
         let currentCasNo = "";
-        let currentGhsData = null; // 인쇄용 위험성 데이터 저장
+        let currentGhsData = null;
 
         const msdsTabs = [
             { id: "01", name: "1. 화학제품과 회사" }, { id: "02", name: "2. 유해성·위험성" },
@@ -314,17 +306,14 @@
             { id: "15", name: "15. 법적 규제" }, { id: "16", name: "16. 그 밖의 참고사항" }
         ];
 
-        // 초기화
         window.onload = () => {
             renderTabs();
         };
 
-        // 엔터키 검색
         function handleKeyPress(e) {
             if (e.key === 'Enter') searchChem();
         }
 
-        // --- OCR (사진 촬영) 시뮬레이션 ---
         function handleImageUpload(e) {
             const file = e.target.files[0];
             if (!file) return;
@@ -343,7 +332,6 @@
             }, 2500);
         }
 
-        // --- 목록 검색 (getChemList) ---
         async function searchChem() {
             const input = document.getElementById('searchInput').value.trim();
             let searchType = document.getElementById('searchType').value;
@@ -355,23 +343,22 @@
                 return;
             }
 
-            // CAS 번호 패턴 감지 시 자동으로 searchType을 cas로 전환
             const casPattern = /^[0-9]+-[0-9]{2}-[0-9]$/;
             if (casPattern.test(input)) {
                 searchType = 'cas';
                 document.getElementById('searchType').value = 'cas';
             }
 
-            // KOSHA API 조건 (0: 물질명, 1: CAS번호)
             let searchCnd = searchType === 'cas' ? "1" : "0"; 
 
             loading.classList.remove('hidden');
             resultList.innerHTML = "";
 
             try {
-                const url = `${BASE_URL}/getChemList?ServiceKey=${encodeURIComponent(API_KEY)}&pageNo=1&numOfRows=50&searchCnd=${searchCnd}&searchWrd=${encodeURIComponent(input)}`;
+                const targetUrl = `${TARGET_BASE_URL}/getChemList?ServiceKey=${API_KEY}&pageNo=1&numOfRows=50&searchCnd=${searchCnd}&searchWrd=${encodeURIComponent(input)}`;
+                const finalUrl = PROXY_URL + encodeURIComponent(targetUrl);
                 
-                const response = await fetch(url);
+                const response = await fetch(finalUrl);
                 const text = await response.text();
                 const parser = new DOMParser();
                 const xml = parser.parseFromString(text, "text/xml");
@@ -384,9 +371,9 @@
 
                 const items = xml.querySelectorAll("item");
                 
-                if (items.length === 0) {
+                if (!items || items.length === 0) {
                     resultList.innerHTML = `
-                        <div class="h-full flex flex-col items-center justify-center text-gray-500">
+                        <div class="h-full flex flex-col items-center justify-center text-gray-500 p-4 text-center">
                             <i class="fa-solid fa-circle-exclamation text-4xl mb-3 text-gray-300"></i>
                             <p>검색 결과가 없습니다.</p>
                         </div>
@@ -420,7 +407,7 @@
                 resultList.innerHTML = `
                     <div class="p-4 bg-red-50 text-red-600 rounded-lg m-2 text-sm">
                         <i class="fa-solid fa-triangle-exclamation mr-1"></i> 데이터를 불러오는 중 오류가 발생했습니다.<br>
-                        (네트워크 상태 또는 API 키를 확인해주세요.)
+                        (네트워크 상태를 확인해주세요.)
                     </div>
                 `;
             } finally {
@@ -497,9 +484,10 @@
 
             try {
                 const endpoint = `getChemDetail${tabId}`;
-                const url = `${BASE_URL}/${endpoint}?ServiceKey=${encodeURIComponent(API_KEY)}&chemId=${currentChemId}`;
+                const targetUrl = `${TARGET_BASE_URL}/${endpoint}?ServiceKey=${API_KEY}&chemId=${currentChemId}`;
+                const finalUrl = PROXY_URL + encodeURIComponent(targetUrl);
                 
-                const response = await fetch(url);
+                const response = await fetch(finalUrl);
                 const text = await response.text();
                 const parser = new DOMParser();
                 const xml = parser.parseFromString(text, "text/xml");
@@ -511,7 +499,6 @@
                 } else {
                     let html = "<div class='space-y-4'>";
                     items.forEach((item, index) => {
-                        // XML 내부에서 태그명이 다양하거나 자식 노드가 다를 수 있으므로 폭넓게 추출
                         let title = "";
                         let content = "";
                         
@@ -522,7 +509,6 @@
                         if (contentEl) {
                             content = contentEl.textContent;
                         } else {
-                            // content 태그가 없을 경우 item의 전체 텍스트 활용 또는 하위 노드 탐색
                             let texts = [];
                             for (let child of item.children) {
                                 if (child.tagName !== 'title' && child.textContent) {
@@ -554,8 +540,9 @@
 
         async function preloadGhsData(chemId) {
             try {
-                const url = `${BASE_URL}/getChemDetail02?ServiceKey=${encodeURIComponent(API_KEY)}&chemId=${chemId}`;
-                const response = await fetch(url);
+                const targetUrl = `${TARGET_BASE_URL}/getChemDetail02?ServiceKey=${API_KEY}&chemId=${chemId}`;
+                const finalUrl = PROXY_URL + encodeURIComponent(targetUrl);
+                const response = await fetch(finalUrl);
                 const text = await response.text();
                 const parser = new DOMParser();
                 const xml = parser.parseFromString(text, "text/xml");
@@ -575,7 +562,7 @@
                     if (title.includes("신호어")) {
                         currentGhsData.signalWord = content.trim();
                     } else if (title.includes("그림문자")) {
-                        currentGhsData.pictograms = content.split(',').map(s => s.trim()).filter(s => s);
+                        currentGschemData.pictograms = content.split(',').map(s => s.trim()).filter(s => s);
                     } else if (title.includes("유해") && title.includes("문구")) {
                         currentGhsData.hazardState = content.trim();
                     } else if (title.includes("예방") && title.includes("문구")) {
@@ -658,4 +645,4 @@
 </html>
 ```eof
 
-I have successfully updated the application to include **"에듀브릿지"** in the UI title and footer and fixed the data parsing issue for tabs (like Component/Composition info) to ensure details correctly display on the right-hand panel.
+위의 `index.html` 파일을 컴퓨터에 저장하셔서 사용하시면 됩니다. 이용에 혼선을 드려 죄송합니다! 추가로 궁금한 점이 있으시면 편하게 말씀해주세요.
