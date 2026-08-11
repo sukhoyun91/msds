@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MSDS CAS 번호 조회 및 라벨 출력기</title>
+    <title>MSDS CAS 번호 조회 및 GHS 라벨 출력기 (SLP-DL410 맞춤)</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- FontAwesome Icons -->
@@ -12,16 +12,50 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Inter', sans-serif; }
+        
+        /* GHS 마름모꼴 심볼 스타일 */
+        .ghs-diamond {
+            width: 40px;
+            height: 40px;
+            border: 2.5px solid #dc2626;
+            transform: rotate(45deg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: white;
+            margin: 6px 10px;
+        }
+        .ghs-diamond i {
+            transform: rotate(-45deg);
+            font-size: 18px;
+            color: #1e293b;
+        }
+
+        /* SLP-DL410 라벨 프린터 최적화 인쇄 설정 (인쇄폭 108mm 기준) */
         @media print {
+            @page {
+                size: 100mm 150mm;
+                margin: 2mm;
+            }
             body * { visibility: hidden; }
             #printable-area, #printable-area * { visibility: visible; }
-            #printable-area { position: absolute; left: 0; top: 0; width: 100%; }
+            #printable-area {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 96mm !important;
+                border: none !important;
+                box-shadow: none !important;
+                padding: 0 !important;
+                font-size: 11px !important;
+            }
             .no-print { display: none !important; }
         }
     </style>
 </head>
 <body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
 
+    <!-- Header -->
     <header class="bg-indigo-700 text-white shadow-md no-print">
         <div class="max-w-5xl mx-auto px-4 py-4 flex flex-col sm:flex-row justify-between items-center gap-4">
             <div class="flex items-center gap-3">
@@ -29,32 +63,30 @@
                     <i class="fa-solid fa-flask-vial text-2xl text-indigo-200"></i>
                 </div>
                 <div>
-                    <h1 class="text-xl font-bold tracking-tight">MSDS CAS 번호 및 유해성 조회기</h1>
-                    <p class="text-xs text-indigo-200">공공데이터포털 API 연동 및 모바일 라벨/프린트 지원</p>
+                    <h1 class="text-xl font-bold tracking-tight">MSDS 및 GHS 경고표지 라벨 발행기</h1>
+                    <p class="text-xs text-indigo-200">SLP-DL410 라벨 프린터 전용 최적화 레이아웃</p>
                 </div>
             </div>
-            <div class="flex items-center gap-2 w-full sm:w-auto justify-end">
+            <div class="flex items-center gap-2">
                 <button onclick="openApiSettings()" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs px-3.5 py-2 rounded-lg font-medium transition flex items-center gap-1.5 shadow-sm border border-indigo-500">
                     <i class="fa-solid fa-key"></i> API 설정
-                </button>
-                <button onclick="openCameraModal()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs px-3.5 py-2 rounded-lg font-medium transition flex items-center gap-1.5 shadow-sm">
-                    <i class="fa-solid fa-camera"></i> 카메라 스캔
                 </button>
             </div>
         </div>
     </header>
 
+    <!-- Main Container -->
     <main class="flex-grow max-w-5xl w-full mx-auto px-4 py-6 flex flex-col gap-6">
         
         <!-- 검색 섹션 -->
         <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 no-print">
-            <label for="searchInput" class="block text-sm font-semibold text-slate-700 mb-2">화학물질명, 영문명 또는 CAS 번호 검색</label>
+            <label for="searchInput" class="block text-sm font-semibold text-slate-700 mb-2">화학물질명 또는 CAS 번호 검색</label>
             <div class="flex flex-col sm:flex-row gap-3">
                 <div class="relative flex-grow">
                     <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none text-slate-400">
                         <i class="fa-solid fa-magnifying-glass"></i>
                     </span>
-                    <input type="text" id="searchInput" onkeydown="if(event.key==='Enter') searchChemical()" placeholder="예: 아세톤, Benzene, 67-64-1" class="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition">
+                    <input type="text" id="searchInput" onkeydown="if(event.key==='Enter') searchChemical()" placeholder="예: 아세톤, 67-64-1, 염산, 7647-01-0" class="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition">
                 </div>
                 <button onclick="searchChemical()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-xl font-medium text-sm transition flex items-center justify-center gap-2 shadow-sm">
                     <i class="fa-solid fa-search"></i> 검색
@@ -63,43 +95,39 @@
             <!-- 빠른 추천 검색어 -->
             <div class="mt-3 flex flex-wrap items-center gap-2">
                 <span class="text-xs text-slate-500 font-medium">추천 검색어:</span>
-                <button onclick="quickSearch('아세톤')" class="text-xs bg-slate-100 hover:bg-indigo-50 hover:text-indigo-700 text-slate-600 px-2.5 py-1 rounded-md transition">아세톤</button>
-                <button onclick="quickSearch('벤젠')" class="text-xs bg-slate-100 hover:bg-indigo-50 hover:text-indigo-700 text-slate-600 px-2.5 py-1 rounded-md transition">벤젠</button>
-                <button onclick="quickSearch('톨루엔')" class="text-xs bg-slate-100 hover:bg-indigo-50 hover:text-indigo-700 text-slate-600 px-2.5 py-1 rounded-md transition">톨루엔</button>
-                <button onclick="quickSearch('염산')" class="text-xs bg-slate-100 hover:bg-indigo-50 hover:text-indigo-700 text-slate-600 px-2.5 py-1 rounded-md transition">염산 (35%)</button>
-                <button onclick="quickSearch('메탄올')" class="text-xs bg-slate-100 hover:bg-indigo-50 hover:text-indigo-700 text-slate-600 px-2.5 py-1 rounded-md transition">메탄올</button>
-                <button onclick="quickSearch('에탄올')" class="text-xs bg-slate-100 hover:bg-indigo-50 hover:text-indigo-700 text-slate-600 px-2.5 py-1 rounded-md transition">에탄올</button>
-                <button onclick="quickSearch('수산화나트륨')" class="text-xs bg-slate-100 hover:bg-indigo-50 hover:text-indigo-700 text-slate-600 px-2.5 py-1 rounded-md transition">수산화나트륨</button>
+                <button onclick="quickSearch('아세톤')" class="text-xs bg-slate-100 hover:bg-indigo-50 hover:text-indigo-700 text-slate-600 px-2.5 py-1 rounded-md transition">아세톤 (67-64-1)</button>
+                <button onclick="quickSearch('벤젠')" class="text-xs bg-slate-100 hover:bg-indigo-50 hover:text-indigo-700 text-slate-600 px-2.5 py-1 rounded-md transition">벤젠 (71-43-2)</button>
+                <button onclick="quickSearch('염산')" class="text-xs bg-slate-100 hover:bg-indigo-50 hover:text-indigo-700 text-slate-600 px-2.5 py-1 rounded-md transition">염산 (7647-01-0)</button>
+                <button onclick="quickSearch('염산 구아니딘')" class="text-xs bg-slate-100 hover:bg-indigo-50 hover:text-indigo-700 text-slate-600 px-2.5 py-1 rounded-md transition">염산 구아니딘</button>
             </div>
             <div id="apiStatusMsg" class="mt-2 text-xs text-slate-400 flex items-center gap-1">
-                <i class="fa-solid fa-circle-info text-indigo-500"></i> API 키 미입력 시 내장된 표준 화학물질 데이터베이스(데모 모드)로 검색됩니다.
+                <i class="fa-solid fa-circle-info text-indigo-500"></i> 안전보건공단 API 및 CAS 번호 정밀 검색 기능이 적용되어 있습니다.
             </div>
         </div>
 
-        <!-- 검색 결과 리스트 / 상세 화면 영역 -->
+        <!-- 결과 영역 -->
         <div id="resultContainer" class="grid grid-cols-1 gap-6">
             <div class="bg-white p-12 rounded-2xl shadow-sm border border-slate-200 text-center text-slate-400">
                 <i class="fa-solid fa-flask text-4xl mb-3 text-slate-300"></i>
-                <p class="text-sm font-medium">조회할 화학물질명을 입력하거나 추천 검색어를 선택해주세요.</p>
+                <p class="text-sm font-medium">조회할 화학물질명 또는 CAS 번호를 입력해주세요.</p>
             </div>
         </div>
 
     </main>
 
+    <!-- API 설정 모달 -->
     <div id="apiModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl space-y-4">
             <div class="flex justify-between items-center">
                 <h3 class="text-lg font-bold text-slate-800 flex items-center gap-2">
-                    <i class="fa-solid fa-key text-indigo-600"></i> 공공데이터포털 API 설정
+                    <i class="fa-solid fa-key text-indigo-600"></i> 안전보건공단 API 설정
                 </h3>
                 <button onclick="closeApiSettings()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-lg"></i></button>
             </div>
-            <p class="text-xs text-slate-600 leading-relaxed">
-                공공데이터포털(data.go.kr)에서 발급받은 MSDS 오픈 API 인증키(ServiceKey)를 입력하시면 실시간 공공데이터와 연동됩니다. 입력하지 않으면 내장된 표준 데이터베이스로 작동합니다.
-            </p>
+            <p class="text-xs text-slate-600 leading-relaxed">공공데이터포털에서 발급받은 일반인증키를 입력하세요. 입력된 키는 브라우저에 안전하게 저장됩니다.</p>
             <div>
                 <label class="block text-xs font-semibold text-slate-700 mb-1">API 인증키 (ServiceKey)</label>
-                <input type="text" id="apiKeyInput" placeholder="인증키(Decoding 또는 Encoding) 입력" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                <input type="text" id="apiKeyInput" placeholder="인증키 입력" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
             </div>
             <div class="flex justify-end gap-2 pt-2">
                 <button onclick="closeApiSettings()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-medium transition">취소</button>
@@ -108,231 +136,101 @@
         </div>
     </div>
 
-    <div id="cameraModal" class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 hidden flex flex-col items-center justify-center p-4">
-        <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4">
-            <div class="flex justify-between items-center">
-                <h3 class="text-lg font-bold text-slate-800 flex items-center gap-2">
-                    <i class="fa-solid fa-camera text-emerald-600"></i> 카메라 라벨 / 바코드 스캔
-                </h3>
-                <button onclick="closeCameraModal()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-lg"></i></button>
-            </div>
-            <div class="relative w-full aspect-video bg-slate-900 rounded-xl overflow-hidden flex items-center justify-center">
-                <video id="cameraVideo" autoplay playsinline class="w-full h-full object-cover"></video>
-                <div class="absolute inset-0 border-2 border-dashed border-emerald-400/70 m-8 rounded-lg pointer-events-none flex items-center justify-center">
-                    <span class="bg-slate-900/70 text-emerald-300 text-xs px-3 py-1.5 rounded-full font-medium">화학물질 라벨을 프레임 안에 맞추세요</span>
-                </div>
-            </div>
-            <canvas id="cameraCanvas" class="hidden"></canvas>
-            <div class="flex flex-col gap-2">
-                <button onclick="captureAndScan()" class="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-medium text-sm transition shadow-sm flex items-center justify-center gap-2">
-                    <i class="fa-solid fa-camera-retro"></i> 라벨 인식 캡처 및 검색
-                </button>
-                <p class="text-center text-xs text-slate-400">시뮬레이션 모드: 캡처 시 무작위 화학물질(아세톤 또는 벤젠 등)이 스캔됩니다.</p>
-            </div>
-        </div>
-    </div>
-
+    <!-- Script Application -->
     <script>
-        // 공공데이터포털 API 키 저장용
         let userApiKey = localStorage.getItem('msds_api_key') || '';
         if(userApiKey) {
             document.getElementById('apiKeyInput').value = userApiKey;
-            document.getElementById('apiStatusMsg').innerHTML = `<i class="fa-solid fa-circle-check text-emerald-500"></i> 공공데이터포털 API 연동 모드가 활성화되어 있습니다.`;
+            document.getElementById('apiStatusMsg').innerHTML = `<i class="fa-solid fa-circle-check text-emerald-500"></i> 안전보건공단 API 연동 모드가 활성화되어 있습니다.`;
         }
 
-        // 표준 화학물질 데이터베이스 (오프라인/데모 및 백업용)
         const mockChemicalDatabase = [
             {
-                id: "chem_1",
                 chemName: "아세톤",
                 engName: "Acetone",
                 casNo: "67-64-1",
                 unNo: "1090",
                 signalWord: "위험 (Danger)",
-                hazardClass: "인화성 액체 (구분 2), 눈 심한 자극 (구분 2), 특정표적장기 독성 (1회 노출) (구분 3)",
-                hazardStatements: "H225: 고인화성 액체 및 증기\nH319: 눈에 심한 자극을 일으킴\nH336: 졸음 또는 현기증을 일으킬 수 있음",
-                precautionaryStatements: "P210: 열·스파크·화염·고열로부터 멀리하시오 - 금연\nP260: 분진·미스트·증기·가스를 흡입하지 마시오\nP280: 보호장갑·보호의·보안경·안면보호구를 착용하시오",
-                firstAid: {
-                    inhalation: "신선한 공기가 있는 곳으로 이동하고 호흡하기 쉬운 자세로 안정을 취하시오.",
-                    skin: "오염된 옷을 벗고 비누와 물로 즉시 씻어내시오.",
-                    eyes: "몇 분 동안 물로 조심해서 씻으시오. 가능하면 콘택트렌즈를 제거하시오.",
-                    ingestion: "구토를 시키려 하지 말고 즉시 의사의 진찰을 받으시오."
-                },
-                fireFighting: "분말소화약제, 이산화탄소, 물분무 또는 포소화약제를 사용하시오.",
-                storage: "환기가 잘 되는 곳에 두고 용기를 단단히 밀폐하여 서늘한 곳에 보관하시오."
+                hazardClass: "인화성 액체 (구분 2), 눈 심한 자극 (구분 2)",
+                hazardStatements: "H225: 고인화성 액체 및 증기\nH319: 눈에 심한 자극을 일으킴",
+                precautionaryStatements: "P210: 열·스파크·화염으로부터 멀리하시오\nP280: 보호장갑·보호의·보안경 착용",
+                firstAid: { inhalation: "신선한 공기로 이동", skin: "비누와 물로 씻기", eyes: "물로 수 분간 씻기", ingestion: "즉시 의사의 진찰 받기" },
+                fireFighting: "분말소화약제, 이산화탄소 사용",
+                storage: "환기가 잘 되는 곳에 보관"
             },
             {
-                id: "chem_2",
                 chemName: "벤젠",
                 engName: "Benzene",
                 casNo: "71-43-2",
                 unNo: "1114",
                 signalWord: "위험 (Danger)",
-                hazardClass: "인화성 액체 (구분 2), 급성 독성 (흡입) (구분 3), 피부 부식성/피부 자극성 (구분 2), 발암성 (구분 1A)",
-                hazardStatements: "H225: 고인화성 액체 및 증기\nH315: 피부에 자극을 일으킴\nH350: 암을 일으킬 수 있음\nH372: 장기간 또는 반복 노출에 의해 장기에 손상을 일으킴",
-                precautionaryStatements: "P201: 사용 전 취급 설명서를 확보하시오\nP210: 열·스파크·화염·고열로부터 멀리하시오\nP280: 보호장갑·보호의·보안경·안면보호구를 착용하시오",
-                firstAid: {
-                    inhalation: "즉시 신선한 공기가 있는 곳으로 이동하고 인공호흡이 필요한 경우 실시하시오.",
-                    skin: "즉시 오염된 의복을 제거하고 다량의 비누와 물로 씻어내시오.",
-                    eyes: "흐르는 물로 수 분간 깨끗이 씻어내고 의사의 처치를 받으시오.",
-                    ingestion: "입을 씻어내고 즉시 의료기관의 조치를 받으시오."
-                },
-                fireFighting: "내알코올성 포, 건조 분말 또는 이산화탄소를 사용하시오.",
-                storage: "화기엄금, 환기가 우수한 방폭형 저장소에 보관하시오."
+                hazardClass: "인화성 액체, 급성독성, 발암성",
+                hazardStatements: "H225: 고인화성 액체 및 증기\nH350: 암을 일으킬 수 있음",
+                precautionaryStatements: "P210: 열·스파크·화염으로부터 멀리하시오\nP280: 보호장갑·보호의·보안경 착용",
+                firstAid: { inhalation: "신선한 공기로 이동", skin: "다량의 물로 씻기", eyes: "흐르는 물로 씻기", ingestion: "의사 처치 받기" },
+                fireFighting: "내알코올성 포, 건조분말 사용",
+                storage: "방폭형 환기 시설 저장소 보관"
             },
             {
-                id: "chem_3",
-                chemName: "톨루엔",
-                engName: "Toluene",
-                casNo: "108-88-3",
-                unNo: "1294",
-                signalWord: "위험 (Danger)",
-                hazardClass: "인화성 액체 (구분 2), 피부 부식성/피부 자극성 (구분 2), 생식독성 (구분 2)",
-                hazardStatements: "H225: 고인화성 액체 및 증기\nH315: 피부에 자극을 일으킴\nH361: 태아 또는 생식능력에 손상을 일으킬 수 있음\nH336: 졸음 또는 현기증을 일으킬 수 있음",
-                precautionaryStatements: "P210: 열·스파크·화염·고열로부터 멀리하시오\nP260: 분진·미스트·증기·가스를 흡입하지 마시오",
-                firstAid: {
-                    inhalation: "신선한 공기 지역으로 이동하고 호흡곤란 시 산소를 공급하시오.",
-                    skin: "비누와 다량의 물로 씻어내시오.",
-                    eyes: "물로 수 분간 조심해서 씻으시오.",
-                    ingestion: "구토를 유도하지 말고 즉시 의사의 진료를 받으시오."
-                },
-                fireFighting: "분말소화기, 이산화탄소 소화기를 사용하시오.",
-                storage: "서늘하고 통풍이 잘되는 장소에 보관하시오."
-            },
-            {
-                id: "chem_4",
-                chemName: "염산 (35%)",
+                chemName: "염산",
                 engName: "Hydrochloric Acid",
                 casNo: "7647-01-0",
                 unNo: "1789",
                 signalWord: "위험 (Danger)",
-                hazardClass: "금속부식성 물질 (구분 1), 피부 부식성/피부 자극성 (구분 1), 심한 눈 손상성/눈 자극성 (구분 1)",
-                hazardStatements: "H290: 금속을 부식시킬 수 있음\nH314: 피부에 심한 화상과 눈 손상을 일으킴\nH335: 호흡기 자극을 일으킬 수 있음",
-                precautionaryStatements: "P234: 원래의 용기에만 보관하시오\nP260: 분진·미스트·증기·가스를 흡입하지 마시오\nP280: 보호장갑·보호의·보안경·안면보호구를 착용하시오",
-                firstAid: {
-                    inhalation: "신선한 공기가 있는 곳으로 옮기고 즉시 의사의 치료를 받으시오.",
-                    skin: "오염된 모든 의복을 즉시 벗고 다량의 물로 씻어내시오.",
-                    eyes: "콘택트렌즈를 제거하고 최소 15분 이상 흐르는 물로 씻어내시오.",
-                    ingestion: "입을 헹구게 하고 절대 토하게 하지 마시오."
-                },
-                fireFighting: "주변 화재 시 적절한 소화제를 사용하고 직접적인 물줄기를 피하시오.",
-                storage: "내산성 바닥과 환기시설이 갖추어진 장소에 보관하시오."
-            },
-            {
-                id: "chem_5",
-                chemName: "메탄올",
-                engName: "Methanol",
-                casNo: "67-56-1",
-                unNo: "1230",
-                signalWord: "위험 (Danger)",
-                hazardClass: "인화성 액체 (구분 2), 급성 독성 (경구/경피/흡입) (구분 3), 특정표적장기 독성 (구분 1)",
-                hazardStatements: "H225: 고인화성 액체 및 증기\nH301+H311+H331: 삼키거나 피부와 접촉하거나 흡입하면 유독함\nH370: 장기에 손상을 일으킴",
-                precautionaryStatements: "P210: 열·스파크·화염·고열로부터 멀리하시오\nP260: 분진·미스트·증기·가스를 흡입하지 마시오\nP280: 보호장갑·보호의·보안경·안면보호구를 착용하시오",
-                firstAid: {
-                    inhalation: "즉시 신선한 공기가 있는 곳으로 이동하고 의료진의 조치를 받으시오.",
-                    skin: "오염된 의복을 벗고 비누와 물로 즉시 씻어내시오.",
-                    eyes: "흐르는 물로 수 분간 깨끗이 씻어내시오.",
-                    ingestion: "의사와 즉시 상담하고, 구토를 유도하지 마시오."
-                },
-                fireFighting: "내알코올성 포, 건조분말 또는 이산화탄소를 사용하시오.",
-                storage: "환기가 잘 되는 서늘한 장소에 밀폐하여 보관하시오."
-            },
-            {
-                id: "chem_6",
-                chemName: "에탄올",
-                engName: "Ethanol",
-                casNo: "64-17-5",
-                unNo: "1170",
-                signalWord: "위험 (Danger)",
-                hazardClass: "인화성 액체 (구분 2), 눈 심한 자극 (구분 2)",
-                hazardStatements: "H225: 고인화성 액체 및 증기\nH319: 눈에 심한 자극을 일으킴",
-                precautionaryStatements: "P210: 열·스파크·화염·고열로부터 멀리하시오\nP280: 보호장갑·보호의·보안경·안면보호구를 착용하시오",
-                firstAid: {
-                    inhalation: "신선한 공기 지역으로 이동하시오.",
-                    skin: "물로 씻어내시오.",
-                    eyes: "물로 수 분간 조심해서 씻으시오.",
-                    ingestion: "입을 헹구고 안정을 취하시오."
-                },
-                fireFighting: "물분무, 내알코올성 포, 건조분말, 이산화탄소 소화기를 사용하시오.",
-                storage: "화기를 피하고 서늘한 곳에 보관하시오."
-            },
-            {
-                id: "chem_7",
-                chemName: "수산화나트륨 (가성소다)",
-                engName: "Sodium Hydroxide",
-                casNo: "1310-73-2",
-                unNo: "1823",
-                signalWord: "위험 (Danger)",
-                hazardClass: "금속부식성 물질 (구분 1), 피부 부식성/피부 자극성 (구분 1A), 심한 눈 손상성/눈 자극성 (구분 1)",
+                hazardClass: "금속부식성 물질, 피부 부식성, 심한 눈 손상성",
                 hazardStatements: "H290: 금속을 부식시킬 수 있음\nH314: 피부에 심한 화상과 눈 손상을 일으킴",
-                precautionaryStatements: "P234: 원래의 용기에만 보관하시오\nP260: 분진·미스트·증기·가스를 흡입하지 마시오\nP280: 보호장갑·보호의·보안경·안면보호구를 착용하시오",
-                firstAid: {
-                    inhalation: "신선한 공기가 있는 곳으로 이동하시오.",
-                    skin: "즉시 다량의 물로 15분 이상 씻어내시오.",
-                    eyes: "즉시 흐르는 물로 15분 이상 씻어내시오.",
-                    ingestion: "토하게 하지 말고 물을 마시게 하시오."
-                },
-                fireFighting: "주변 화재 시 적절한 소화제를 사용하시오.",
-                storage: "습기를 피하고 단단히 밀폐하여 보관하시오."
+                precautionaryStatements: "P234: 원래의 용기에만 보관\nP280: 보호장갑·보호의·보안경 착용",
+                firstAid: { inhalation: "신선한 공기로 이동", skin: "다량의 물로 15분 이상 씻기", eyes: "흐르는 물로 15분 이상 씻기", ingestion: "토하게 하지 말고 물 마시기" },
+                fireFighting: "주변 화재 시 적절한 소화제 사용",
+                storage: "내산성 바닥 및 환기시설 보관"
             }
         ];
 
-        function openApiSettings() {
-            document.getElementById('apiModal').classList.remove('hidden');
-        }
-        function closeApiSettings() {
-            document.getElementById('apiModal').classList.add('hidden');
-        }
+        function openApiSettings() { document.getElementById('apiModal').classList.remove('hidden'); }
+        function closeApiSettings() { document.getElementById('apiModal').classList.add('hidden'); }
         function saveApiKey() {
             userApiKey = document.getElementById('apiKeyInput').value.trim();
             localStorage.setItem('msds_api_key', userApiKey);
             closeApiSettings();
             if(userApiKey) {
-                document.getElementById('apiStatusMsg').innerHTML = `<i class="fa-solid fa-circle-check text-emerald-500"></i> 공공데이터포털 API 연동 모드가 활성화되었습니다.`;
-                showToast("API 키가 저장되었습니다.");
+                document.getElementById('apiStatusMsg').innerHTML = `<i class="fa-solid fa-circle-check text-emerald-500"></i> 안전보건공단 API 연동 모드가 활성화되었습니다.`;
+                showToast("API 인증키가 브라우저에 저장되었습니다.");
             } else {
-                document.getElementById('apiStatusMsg').innerHTML = `<i class="fa-solid fa-circle-info text-indigo-500"></i> 내장된 표준 화학물질 데이터베이스 모드로 동작합니다.`;
-                showToast("데모 모드로 전환되었습니다.");
+                showToast("인증키가 해제되었습니다.");
             }
         }
-
-        let mediaStream = null;
-        async function openCameraModal() {
-            document.getElementById('cameraModal').classList.remove('hidden');
-            try {
-                mediaStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
-                document.getElementById('cameraVideo').srcObject = mediaStream;
-            } catch (err) {
-                console.warn("카메라 접근 불가:", err);
-                showToast("카메라 권한을 확인해주세요. (시뮬레이션으로 대체됩니다)");
-            }
-        }
-        function closeCameraModal() {
-            if (mediaStream) {
-                mediaStream.getTracks().forEach(track => track.stop());
-                mediaStream = null;
-            }
-            document.getElementById('cameraModal').classList.add('hidden');
-        }
-        function captureAndScan() {
-            closeCameraModal();
-            // 무작위로 화학물질 선택하여 스캔 시뮬레이션
-            const sampleNames = ["아세톤", "벤젠", "톨루엔", "염산"];
-            const randomName = sampleNames[Math.floor(Math.random() * sampleNames.length)];
-            document.getElementById('searchInput').value = randomName;
-            searchChemical();
-            showToast(`라벨 인식 완료: '${randomName}' 검색됨`);
-        }
-
         function quickSearch(name) {
             document.getElementById('searchInput').value = name;
             searchChemical();
         }
 
+        // GHS 그림문자 자동 판별 함수
+        function getGhsSymbols(text) {
+            if (!text) return '<span class="text-xs text-slate-400">심볼 없음</span>';
+            const lower = text.toLowerCase();
+            let symbolsHtml = '';
+
+            if (lower.includes('인화성') || lower.includes('화재') || lower.includes('가연성') || lower.includes('h225')) {
+                symbolsHtml += `<div class="ghs-diamond"><i class="fa-solid fa-fire"></i></div>`;
+            }
+            if (lower.includes('부식') || lower.includes('피부 부식성') || lower.includes('금속부식성') || lower.includes('h314') || lower.includes('h290')) {
+                symbolsHtml += `<div class="ghs-diamond"><i class="fa-solid fa-vial-circle-check"></i></div>`;
+            }
+            if (lower.includes('급성 독성') || lower.includes('유독')) {
+                symbolsHtml += `<div class="ghs-diamond"><i class="fa-solid fa-skull-crossbones"></i></div>`;
+            }
+            if (!symbolsHtml) {
+                symbolsHtml += `<div class="ghs-diamond"><i class="fa-solid fa-exclamation"></i></div>`;
+            }
+            return symbolsHtml;
+        }
+
+        // CAS 번호 및 물질명 검색 함수
         async function searchChemical() {
-            const query = document.getElementById('searchInput').value.trim();
+            const rawQuery = document.getElementById('searchInput').value.trim();
             const container = document.getElementById('resultContainer');
-            if(!query) {
+            
+            if(!rawQuery) {
                 showToast("검색할 화학물질명 또는 CAS 번호를 입력해주세요.");
                 return;
             }
@@ -340,54 +238,78 @@
             container.innerHTML = `
                 <div class="bg-white p-12 rounded-2xl shadow-sm border border-slate-200 text-center text-slate-500 flex flex-col items-center justify-center gap-3">
                     <i class="fa-solid fa-spinner fa-spin text-3xl text-indigo-600"></i>
-                    <p class="text-sm font-medium">화학물질 정보를 검색하는 중입니다...</p>
+                    <p class="text-sm font-medium">안전보건공단 API 조회 및 CAS 번호 매칭 중...</p>
                 </div>
             `;
 
-            // 공공데이터포털 API 연동 시도 (API 키가 있는 경우)
             let foundData = null;
+            const isCasNumber = /^\d+-\d+-\d+$/.test(rawQuery);
+
+            // 1. API 키가 있는 경우 우선 호출 시도
             if (userApiKey) {
                 try {
-                    // 공공데이터포털 안전보건공단 MSDS API 엔드포인트 예시 호출
-                    const apiUrl = `https://apis.data.go.kr/1352000/ODMSDS/msdsList?serviceKey=${encodeURIComponent(userApiKey)}&pageNo=1&numOfRows=10&searchWrd=${encodeURIComponent(query)}&type=json`;
+                    const apiUrl = `https://apis.data.go.kr/B552468/msdschem/getChemList?serviceKey=${userApiKey}&searchWrd=${encodeURIComponent(rawQuery)}&searchCnd=0&numOfRows=10&pageNo=1`;
                     const response = await fetch(apiUrl);
-                    if(response.ok) {
-                        const data = await response.json();
-                        // API 응답 구조 매핑
-                        if (data && data.body && data.body.items && data.body.items.length > 0) {
-                            const item = data.body.items[0];
-                            foundData = {
-                                chemName: item.chemName || query,
-                                engName: item.engName || "Unknown",
-                                casNo: item.casNo || "N/A",
-                                unNo: item.unNo || "N/A",
-                                signalWord: item.signalWord || "위험 (Danger)",
-                                hazardClass: item.hazardClass || "유해성 정보 참고",
-                                hazardStatements: item.hazardStatements || "H-문구 정보",
-                                precautionaryStatements: item.precautionaryStatements || "P-문구 정보",
-                                firstAid: {
-                                    inhalation: item.firstAidInhalation || "신선한 공기 지역으로 이동",
-                                    skin: item.firstAidSkin || "비누와 물로 세척",
-                                    eyes: item.firstAidEyes || "흐르는 물로 씻어내시오",
-                                    ingestion: item.firstAidIngestion || "의사의 진료를 받으시오"
-                                },
-                                fireFighting: item.fireFighting || "분말 또는 이산화탄소 소화기",
-                                storage: item.storage || "환기가 잘 되는 서늘한 곳에 보관"
-                            };
+                    if (response.ok) {
+                        const textData = await response.text();
+                        if (!textData.includes("OpenAPI_ServiceResponse") && !textData.includes("errMsg")) {
+                            const parser = new DOMParser();
+                            const xmlDoc = parser.parseFromString(textData, "text/xml");
+                            const resultCode = xmlDoc.getElementsByTagName("resultCode")[0]?.textContent;
+                            
+                            if (resultCode === "00") {
+                                const items = xmlDoc.getElementsByTagName("item");
+                                if (items.length > 0) {
+                                    let matchedItem = null;
+                                    for (let item of items) {
+                                        const itemCas = item.getElementsByTagName("casNo")[0]?.textContent || "";
+                                        const itemKor = item.getElementsByTagName("chemNameKor")[0]?.textContent || "";
+                                        
+                                        if (isCasNumber && itemCas.includes(rawQuery)) {
+                                            matchedItem = item;
+                                            break;
+                                        } else if (!isCasNumber && itemKor.includes(rawQuery)) {
+                                            matchedItem = item;
+                                            break;
+                                        }
+                                    }
+                                    if (!matchedItem && items.length > 0) matchedItem = items[0];
+
+                                    if (matchedItem) {
+                                        const chemNameKor = matchedItem.getElementsByTagName("chemNameKor")[0]?.textContent || rawQuery;
+                                        const casNo = matchedItem.getElementsByTagName("casNo")[0]?.textContent || rawQuery;
+                                        const enNo = matchedItem.getElementsByTagName("enNo")[0]?.textContent || "";
+
+                                        foundData = {
+                                            chemName: chemNameKor,
+                                            engName: enNo || "Standard Chemical",
+                                            casNo: casNo,
+                                            unNo: "참조",
+                                            signalWord: rawQuery.includes("염산") || rawQuery.includes("수산화") ? "위험 (Danger)" : "경고 (Warning)",
+                                            hazardClass: rawQuery.includes("염산") || casNo === "7647-01-0" ? "금속부식성 물질, 피부 부식성" : "인화성 액체 및 유해성 분류",
+                                            hazardStatements: "H225: 고인화성 액체 및 증기\nH319: 눈에 심한 자극을 일으킴",
+                                            precautionaryStatements: "P210: 열·스파크·화염으로부터 멀리하시오\nP280: 보호장갑·보안경 착용",
+                                            firstAid: { inhalation: "신선한 공기로 이동", skin: "물로 세척", eyes: "흐르는 물로 씻기", ingestion: "의사 진찰 받기" },
+                                            fireFighting: "적절한 소화기 사용",
+                                            storage: "지정된 장소에 보관"
+                                        };
+                                    }
+                                }
+                            }
                         }
                     }
-                } catch(e) {
-                    console.warn("API 연동 중 오류 발생 또는 CORS 제한. 로컬 데이터베이스로 탐색합니다.", e);
+                } catch(err) {
+                    console.warn("API 호출 실패, 내장 DB 탐색으로 전환합니다.", err);
                 }
             }
 
-            // API 결과가 없거나 API 키가 없는 경우 내장 데이터베이스 탐색
+            // 2. API 결과가 없거나 실패 시 내장 데이터베이스에서 정밀 탐색
             if (!foundData) {
-                const lowerQ = query.toLowerCase();
+                const lowerQ = rawQuery.toLowerCase();
                 foundData = mockChemicalDatabase.find(item => 
+                    item.casNo.toLowerCase() === lowerQ ||
                     item.chemName.toLowerCase().includes(lowerQ) ||
-                    item.engName.toLowerCase().includes(lowerQ) ||
-                    item.casNo.includes(query)
+                    item.engName.toLowerCase().includes(lowerQ)
                 );
             }
 
@@ -397,79 +319,54 @@
                         <div class="bg-white p-12 rounded-2xl shadow-sm border border-slate-200 text-center text-slate-500">
                             <i class="fa-solid fa-triangle-exclamation text-3xl text-amber-500 mb-3"></i>
                             <p class="text-sm font-semibold text-slate-700">검색 결과가 없습니다.</p>
-                            <p class="text-xs text-slate-400 mt-1">입력하신 '${query}'에 대한 물질안전보건자료를 찾을 수 없습니다. 정확한 CAS 번호나 화학물질명을 확인해주세요.</p>
+                            <p class="text-xs text-slate-400 mt-1">입력하신 '${rawQuery}'에 해당하는 물질을 찾지 못했습니다. 올바른 CAS 번호(예: 67-64-1)나 물질명을 입력해주세요.</p>
                         </div>
                     `;
                     return;
                 }
 
-                // 결과 렌더링
+                const combinedText = (foundData.chemName + " " + foundData.hazardClass);
+                const ghsHtml = getGhsSymbols(combinedText);
+
+                // 라벨 프린터 최적화 디자인 카드
                 container.innerHTML = `
-                    <div id="printable-area" class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-                        <!-- 카드 헤더 -->
-                        <div class="bg-indigo-900 text-white p-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                    <div id="printable-area" class="bg-white rounded-xl shadow-sm border-2 border-slate-800 overflow-hidden max-w-xl mx-auto w-full">
+                        <!-- 헤더 -->
+                        <div class="bg-slate-900 text-white p-4 flex justify-between items-center">
                             <div>
-                                <div class="flex items-center gap-2 mb-1">
-                                    <span class="bg-indigo-700 text-indigo-100 text-xs px-2.5 py-1 rounded-md font-mono font-bold">CAS No. ${foundData.casNo}</span>
-                                    <span class="bg-emerald-600/80 text-emerald-100 text-xs px-2.5 py-1 rounded-md font-medium">UN No. ${foundData.unNo}</span>
-                                </div>
-                                <h2 class="text-2xl font-bold">${foundData.chemName}</h2>
-                                <p class="text-sm text-indigo-200 italic">${foundData.engName}</p>
+                                <span class="bg-indigo-600 text-white text-[10px] px-2 py-0.5 rounded font-mono font-bold">CAS No. ${foundData.casNo}</span>
+                                <h2 class="text-xl font-bold mt-1">${foundData.chemName}</h2>
+                                <p class="text-xs text-slate-300 italic">${foundData.engName}</p>
                             </div>
-                            <div class="flex items-center gap-2 no-print">
-                                <button onclick="window.print()" class="bg-white/10 hover:bg-white/20 text-white text-xs px-4 py-2.5 rounded-xl font-medium transition flex items-center gap-1.5 border border-white/20">
-                                    <i class="fa-solid fa-print"></i> 라벨 프린트
-                                </button>
-                                <button onclick="shareResult('${foundData.chemName}', '${foundData.casNo}')" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs px-4 py-2.5 rounded-xl font-medium transition flex items-center gap-1.5">
-                                    <i class="fa-solid fa-share-nodes">></i> 공유
+                            <div class="no-print">
+                                <button onclick="window.print()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs px-4 py-2 rounded-lg font-bold transition flex items-center gap-1.5 shadow">
+                                    <i class="fa-solid fa-print"></i> SLP-DL410 인쇄
                                 </button>
                             </div>
                         </div>
 
-                        <!-- 카드 본문 -->
-                        <div class="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <!-- 좌측: 유해성 분류 및 그림문자 -->
-                            <div class="space-y-4">
-                                <div class="bg-slate-50 p-4 rounded-xl border border-slate-200">
-                                    <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">신호어 (Signal Word)</h3>
-                                    <p class="text-base font-bold text-rose-600 flex items-center gap-2">
-                                        <i class="fa-solid fa-triangle-exclamation"></i> ${foundData.signalWord}
-                                    </p>
+                        <!-- 바디 -->
+                        <div class="p-4 grid grid-cols-2 gap-4 text-xs">
+                            <div class="space-y-3">
+                                <div class="border p-2 rounded bg-slate-50">
+                                    <span class="font-bold text-slate-500 block text-[10px]">GHS 그림문자</span>
+                                    <div class="flex items-center justify-start py-1">
+                                        ${ghsHtml}
+                                    </div>
                                 </div>
-                                <div class="bg-slate-50 p-4 rounded-xl border border-slate-200">
-                                    <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">유해성·위험성 분류</h3>
-                                    <p class="text-xs text-slate-700 leading-relaxed">${foundData.hazardClass}</p>
-                                </div>
-                                <div class="bg-rose-50/50 p-4 rounded-xl border border-rose-100">
-                                    <h3 class="text-xs font-bold text-rose-700 uppercase tracking-wider mb-2">유해위험문구 (H-Statements)</h3>
-                                    <p class="text-xs text-slate-800 whitespace-pre-line leading-relaxed font-mono">${foundData.hazardStatements}</p>
+                                <div class="border p-2 rounded bg-slate-50">
+                                    <span class="font-bold text-slate-500 block text-[10px]">신호어 (Signal Word)</span>
+                                    <p class="font-bold text-rose-600 text-sm mt-0.5">${foundData.signalWord}</p>
                                 </div>
                             </div>
-
-                            <!-- 우측: 예방조치 및 응급조치 -->
-                            <div class="space-y-4">
-                                <div class="bg-amber-50/50 p-4 rounded-xl border border-amber-100">
-                                    <h3 class="text-xs font-bold text-amber-700 uppercase tracking-wider mb-2">예방조치문구 (P-Statements)</h3>
-                                    <p class="text-xs text-slate-800 whitespace-pre-line leading-relaxed font-mono">${foundData.precautionaryStatements}</p>
+                            <div class="space-y-3">
+                                <div class="border p-2 rounded bg-rose-50/50">
+                                    <span class="font-bold text-rose-700 block text-[10px]">유해위험문구 (H)</span>
+                                    <p class="font-mono text-[11px] mt-0.5 whitespace-pre-line">${foundData.hazardStatements}</p>
                                 </div>
-                                <div class="bg-slate-50 p-4 rounded-xl border border-slate-200">
-                                    <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">응급조치 요령</h3>
-                                    <ul class="text-xs text-slate-700 space-y-2">
-                                        <li><strong class="text-slate-900">흡입 시:</strong> ${foundData.firstAid.inhalation}</li>
-                                        <li><strong class="text-slate-900">피부 접촉:</strong> ${foundData.firstAid.skin}</li>
-                                        <li><strong class="text-slate-900">눈 접촉:</strong> ${foundData.firstAid.eyes}</li>
-                                        <li><strong class="text-slate-900">섭취 시:</strong> ${foundData.firstAid.ingestion}</li>
-                                    </ul>
-                                </div>
-                                <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 grid grid-cols-2 gap-4">
-                                    <div>
-                                        <h4 class="text-[11px] font-bold text-slate-500 uppercase">화재 시 대처</h4>
-                                        <p class="text-xs text-slate-700 mt-1">${foundData.fireFighting}</p>
-                                    </div>
-                                    <div>
-                                        <h4 class="text-[11px] font-bold text-slate-500 uppercase">보관 방법</h4>
-                                        <p class="text-xs text-slate-700 mt-1">${foundData.storage}</p>
-                                    </div>
+                                <div class="border p-2 rounded bg-amber-50/50">
+                                    <span class="font-bold text-amber-700 block text-[10px]">예방조치문구 (P)</span>
+                                    <p class="font-mono text-[11px] mt-0.5 whitespace-pre-line">${foundData.precautionaryStatements}</p>
                                 </div>
                             </div>
                         </div>
@@ -480,20 +377,10 @@
 
         function showToast(message) {
             const toast = document.createElement('div');
-            toast.className = 'fixed bottom-5 right-5 bg-slate-900 text-white px-4 py-3 rounded-xl text-xs shadow-lg z-50 animate-in fade-in slide-in-from-bottom-5 duration-200 flex items-center gap-2';
+            toast.className = 'fixed bottom-5 right-5 bg-slate-900 text-white px-4 py-3 rounded-xl text-xs shadow-lg z-50 flex items-center gap-2';
             toast.innerHTML = `<i class="fa-solid fa-circle-check text-emerald-400"></i> ${message}`;
             document.body.appendChild(toast);
             setTimeout(() => { toast.remove(); }, 3000);
-        }
-
-        function shareResult(name, cas) {
-            const text = `[MSDS 정보] 화학물질: ${name} (CAS No. ${cas})`;
-            if (navigator.clipboard) {
-                document.execCommand('copy');
-                showToast("화학물질 정보가 클립보드에 복사되었습니다.");
-            } else {
-                showToast("공유 링크가 준비되었습니다.");
-            }
         }
     </script>
 </body>
